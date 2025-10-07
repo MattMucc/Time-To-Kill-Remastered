@@ -10,15 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d75ec4cd4481284cbcfda7eae7e65cb, type: 3}
-  m_Name: Pistol
+  m_Name: Rocket
   m_EditorClassIdentifier: 
-  weaponName: Pistol
+  weaponName: Rocket
   weaponIcon: {fileID: 0}
-  weaponPickupPrefab: {fileID: 0}
-  weaponPrefab: {fileID: 0}
   isMelee: 0
   isThrowable: 0
-  damage: 10
-  rateOfFire: 0.5
-  maxAmmo: 10
-  currentAmmo: 10
+  weaponPickupPrefab: {fileID: 6073021170722640222, guid: e35dc821189102c4b8a83eb7309057a2, type: 3}
+  model: {fileID: 5888128854894312687, guid: 0db251ee47a218c45a10979680ef96be, type: 3}
+  projectilePrefab: {fileID: 8769201565513377806, guid: 727552b27f6e48043abfa0ca5a3459c8, type: 3}
+  muzzleFlash: {fileID: 0}
+  damage: 25
+  rateOfFire: 2
+  reloadTime: 3
+  maxAmmo: 5
+  currentAmmo: 1

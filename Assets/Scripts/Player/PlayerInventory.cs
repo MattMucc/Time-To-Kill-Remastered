@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.InputSystem;
 
 [System.Serializable]
 public class WeaponSlot
 {
     public WeaponData weaponData;
-    public float currentAmmo;
 }
 
 [System.Serializable]
@@ -23,15 +23,55 @@ public class PlayerInventory : MonoBehaviour
     public List<WeaponSlot> ownedWeapons = new List<WeaponSlot>();
     public List<ThrowableSlot> ownedThrowables = new List<ThrowableSlot>();
     public WeaponData currentWeapon;
+    public int currentWeaponSlot;
+    private float nextSwitchTime = 0f;
+
+    [Header("Inventory Settings")]
+    public float weaponSwitchCooldown = 0.25f;
     public int maxWeaponSlots = 5;
     public int maxThrowableSlots = 1;
     public int maxThrowableAmount = 5;
+
+    [Header("References")]
+    public GameObject weaponModel;
+    public Transform gunTip;
 
     [Header("Events")]
     public UnityEvent<WeaponData> OnWeaponPickUp;
     public UnityEvent<WeaponData> OnWeaponSwitched;
     public UnityEvent<WeaponData> OnWeaponDropped;
     public UnityEvent<WeaponData> OnThrowablePickUp;
+
+    private void Start()
+    {
+        if (UIManager.instance)
+            UIManager.instance.RegisterPlayerInventory(this);
+    }
+
+    private void Update()
+    {
+        ChangeWeaponInput();
+    }
+
+    private void ChangeWeaponInput()
+    {
+        if (!InputManager.instance)
+            return;
+
+        if (Time.time < nextSwitchTime)
+            return;
+
+        if (InputManager.instance.NextPressed || Mouse.current.scroll.ReadValue().y > 0.1f)
+        {
+            nextSwitchTime = Time.time + weaponSwitchCooldown;
+            ChangeWeapon(1);
+        }
+        else if (InputManager.instance.PreviousPressed || Mouse.current.scroll.ReadValue().y < -0.1f)
+        {
+            nextSwitchTime = Time.time + weaponSwitchCooldown;
+            ChangeWeapon(-1);
+        }
+    }
 
     public void AddWeapon(WeaponData weapon)
     {
@@ -45,15 +85,19 @@ public class PlayerInventory : MonoBehaviour
                 return;
         }
 
+        if (ownedWeapons.Count >= maxWeaponSlots)
+        {
+            Debug.LogWarning("Cannot pick up more weapons - inventory full!");
+            return;
+        }
+
         WeaponSlot newSlot = new WeaponSlot
         {
             weaponData = weapon,
-            currentAmmo = weapon.currentAmmo
         };
 
         ownedWeapons.Add(newSlot);
         OnWeaponPickUp?.Invoke(weapon);
-        Debug.Log($"Picked up {weapon.weaponName}");
         EquipWeapon(weapon); // Equip the new weapon upon picking it up
     }
 
@@ -62,7 +106,18 @@ public class PlayerInventory : MonoBehaviour
         if (!weapon)
             return;
 
+        int index = ownedWeapons.FindIndex(w => w.weaponData == weapon);
+        if (index < 0)
+        {
+            Debug.LogWarning($"Tried to equip {weapon.weaponName} that isn't in your inventory!");
+            return;
+        }
+
         currentWeapon = weapon;
+        currentWeaponSlot = index;
+        weaponModel.GetComponent<MeshFilter>().sharedMesh = weapon.model.GetComponent<MeshFilter>().sharedMesh;
+        weaponModel.GetComponent<MeshRenderer>().sharedMaterial = weapon.model.GetComponent<MeshRenderer>().sharedMaterial;
+        gunTip.localPosition = weapon.model.transform.Find("GunTip").localPosition;
         OnWeaponSwitched?.Invoke(weapon);
     }
 
@@ -71,11 +126,38 @@ public class PlayerInventory : MonoBehaviour
         if (!weapon)
             return;
 
-        ownedWeapons.RemoveAll(w => w.weaponData == weapon);
+        int index = ownedWeapons.FindIndex(w => w.weaponData == weapon);
+        if (index < 0)
+            return;
+
+        ownedWeapons.RemoveAt(index);
         OnWeaponDropped?.Invoke(weapon);
         Debug.Log($"Dropped {weapon.weaponName}");
-        if (currentWeapon == weapon && ownedWeapons.Count > 0)
-            EquipWeapon(ownedWeapons[0].weaponData);
+        if (ownedWeapons.Count <= 0)
+        {
+            currentWeapon = null;
+            currentWeaponSlot = -1;
+            return;
+        }
+
+        // Wrap slot index to stay within valid range
+        currentWeaponSlot = Mathf.Clamp(currentWeaponSlot, 0, ownedWeapons.Count - 1);
+        EquipWeapon(ownedWeapons[currentWeaponSlot].weaponData);
+    }
+
+    public void ChangeWeapon(int direction)
+    {
+        if (ownedWeapons.Count <= 0)
+            return;
+
+        // Direction: +1 = next, -1 = previous
+        currentWeaponSlot += direction;
+        if (currentWeaponSlot >= ownedWeapons.Count)
+            currentWeaponSlot = 0;
+        else if (currentWeaponSlot < 0)
+            currentWeaponSlot = ownedWeapons.Count - 1;
+
+        EquipWeapon(ownedWeapons[currentWeaponSlot].weaponData);
     }
 
     public void AddThrowable(WeaponData throwable, int amount = 1)
@@ -93,14 +175,14 @@ public class PlayerInventory : MonoBehaviour
             }
         }
 
-        ownedThrowables.Add(new ThrowableSlot
+        ThrowableSlot newSlot = new ThrowableSlot
         {
             throwableData = throwable,
             quantity = amount
-        });
+        };
 
+        ownedThrowables.Add(newSlot);
         OnThrowablePickUp?.Invoke(throwable);
-        Debug.Log($"Picked up {throwable.weaponName}");
     }
 
     public bool UseThrowable(WeaponData throwable)

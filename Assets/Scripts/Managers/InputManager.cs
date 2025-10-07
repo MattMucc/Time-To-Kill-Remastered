@@ -22,6 +22,9 @@ public class InputManager : MonoBehaviour
     public bool ReloadPressed { get; private set; }
     public bool GrappleHeld { get; private set; }
 
+    public bool NextPressed { get; private set; }
+    public bool PreviousPressed { get; private set; }
+
     public bool InteractPressed { get; private set; }
     public bool PausePressed { get; private set; }
 
@@ -48,6 +51,9 @@ public class InputManager : MonoBehaviour
         AttackHeld = controls.Player.Attack.IsPressed();
         ReloadPressed = controls.Player.Reload.WasPerformedThisFrame();
         GrappleHeld = controls.Player.Grapple.IsPressed();
+
+        NextPressed = controls.Player.Next.WasPerformedThisFrame();
+        PreviousPressed = controls.Player.Previous.WasPerformedThisFrame();
 
         InteractPressed = controls.Player.Interact.WasPerformedThisFrame();
         PausePressed = controls.Player.Pause.WasPerformedThisFrame();
