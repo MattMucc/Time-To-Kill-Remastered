@@ -17,4 +17,6 @@ public static class SceneLibrary
         Scene current = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
         Load(current.name);
     }
+
+    public static bool IsMainMenuScene => UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == MainMenu;
 }
