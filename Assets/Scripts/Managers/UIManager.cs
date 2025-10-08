@@ -21,6 +21,10 @@ public class UIManager : MonoBehaviour
     [Header("HUD References")]
     [SerializeField] private InteractPrompt interactPrompt;
 
+    [Header("Center")]
+    [SerializeField] private Image reloadCircle;
+    [SerializeField] private TMP_Text reloadText;
+
     [Header("Vital References")]
     [SerializeField] private Image shieldbar;
     [SerializeField] private TMP_Text spText;
@@ -46,6 +50,7 @@ public class UIManager : MonoBehaviour
     // Component References
     private PlayerHealth playerHealth;
     private PlayerInventory playerInventory;
+    private WeaponHandler weaponHandler;
 
     private void Awake()
     {
@@ -62,10 +67,12 @@ public class UIManager : MonoBehaviour
                 menuLookup.Add(menu.name, menu.menu);
         }
 
-        slideCooldownImage.fillAmount = 0;
-        grappleCooldownImage.fillAmount = 0;
         multiplierMeter.fillAmount = 0;
         multiplierText.text = "x1";
+        reloadCircle.gameObject.SetActive(false);
+        reloadText.gameObject.SetActive(false);
+        slideCooldownImage.fillAmount = 0;
+        grappleCooldownImage.fillAmount = 0;
     }
 
     private void OnEnable()
@@ -103,6 +110,25 @@ public class UIManager : MonoBehaviour
     public bool IsMenuActive(string menuName)
     {
         return menuLookup.ContainsKey(menuName) && menuLookup[menuName].activeSelf;
+    }
+
+    public void OpenPause()
+    {
+        HideAllMenus();
+        ShowMenu("Pause");
+    }
+
+    public void OpenHUD()
+    {
+        HideAllMenus();
+        ShowMenu("HUD");
+        ShowMenu("Prompt");
+    }
+
+    public void OpenPrompt()
+    {
+        HideAllMenus();
+        ShowMenu("Prompt");
     }
 
     // HUD Functionality
@@ -162,6 +188,26 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    public void RegisterWeaponHandler(WeaponHandler handler)
+    {
+        // Unsubscribe from old events
+        if (weaponHandler)
+        {
+            weaponHandler.OnReloadStart.RemoveListener(ShowReload);
+            weaponHandler.OnReloadProgress.RemoveListener(UpdateReload);
+            weaponHandler.OnReloadComplete.RemoveListener(HideReload);
+        }
+
+        // Subscribe to new weapon handler
+        weaponHandler = handler;
+        if (weaponHandler)
+        {
+            weaponHandler.OnReloadStart.AddListener(ShowReload);
+            weaponHandler.OnReloadProgress.AddListener(UpdateReload);
+            weaponHandler.OnReloadComplete.AddListener(HideReload);
+        }
+    }
+
     private void UpdateShieldbar(float current, float max)
     {
         if (!shieldbar || !spText)
@@ -217,7 +263,28 @@ public class UIManager : MonoBehaviour
         ThrowableSlot slot = playerInventory.GetThrowableSlot(throwable);
         throwableImage.sprite = throwable.weaponIcon;
         quantity.text = $"{slot.quantity}";
-        Debug.LogWarning("Don't forget to update the quantity of the throwable as well!");
+    }
+
+    private void ShowReload()
+    {
+        reloadCircle.gameObject.SetActive(true);
+        reloadCircle.fillAmount = 0f;
+        reloadText.gameObject.SetActive(true);
+        reloadText.text = "Reloading...";
+    }
+
+    private void UpdateReload(float progress)
+    {
+        reloadCircle.fillAmount = Mathf.Clamp01(progress);
+    }
+
+    private void HideReload()
+    {
+        if (playerInventory && playerInventory.currentWeapon)
+            UpdateWeapon(playerInventory.currentWeapon);
+
+        reloadCircle.gameObject.SetActive(false);
+        reloadText.gameObject.SetActive(false);
     }
 
     private void OnControlSchemeChanged(string scheme)

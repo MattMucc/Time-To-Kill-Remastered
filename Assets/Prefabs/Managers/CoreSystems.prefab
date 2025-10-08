@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4721532571957783658}
+  - component: {fileID: 2836250119233506756}
   - component: {fileID: 929233457969391753}
   - component: {fileID: 7809086995347757922}
   m_Layer: 0
@@ -37,6 +38,25 @@ Transform:
   - {fileID: 659380962289559082}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2836250119233506756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2926435633354665858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc3a44a35feb9b0479a9047c2eb437a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isPaused: 0
+  OnPause:
+    m_PersistentCalls:
+      m_Calls: []
+  OnResume:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &929233457969391753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49,6 +69,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1a96b0a9a790ff43859672bfb679bf3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  currentScheme: Keyboard&Mouse
+  lastScheme: Keyboard&Mouse
 --- !u!114 &7809086995347757922
 MonoBehaviour:
   m_ObjectHideFlags: 0

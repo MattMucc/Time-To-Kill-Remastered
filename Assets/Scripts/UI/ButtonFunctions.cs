@@ -65,6 +65,23 @@ public class ButtonFunctions : MonoBehaviour
         }
     }
 
+    // HUD
+
+    public void OpenHUD()
+    {
+        HideAllMenus();
+        ShowMenu("HUD");
+        ShowMenu("Prompt");
+    }
+
+    public void OpenPrompt()
+    {
+        HideAllMenus();
+        ShowMenu("Prompt");
+    }
+
+    // Menus
+
     public void OpenMainMenu()
     {
         HideAllMenus();
@@ -123,9 +140,31 @@ public class ButtonFunctions : MonoBehaviour
         LoadScene(SceneLibrary.LevelOne);
     }
 
+    public void Resume()
+    {
+        if (GameStateManager.instance)
+            GameStateManager.instance.ResumeGame();
+    }
+
+    public void RestartLevel()
+    {
+        if (GameStateManager.instance)
+            GameStateManager.instance.RestartLevel();
+    }
+
+    public void QuitToMenu()
+    {
+        Resume();
+        HideAllMenus();
+        ShowMenu("Main");
+        Debug.Log("Save before quitting!");
+        LoadScene(SceneLibrary.MainMenu);
+    }
+
     public void Quit()
     {
 #if UNITY_EDITOR
+        Debug.Log("Save before quitting!");
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();

@@ -12,7 +12,7 @@ public class WeaponData : ScriptableObject
 
     [Header("Models")]
     public GameObject weaponPickupPrefab;
-    public GameObject model;
+    [Tooltip("Used mainly to get the MeshFilter and MeshRenderer")] public GameObject model;
     public GameObject projectilePrefab;
     public GameObject muzzleFlash;
 

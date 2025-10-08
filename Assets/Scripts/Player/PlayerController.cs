@@ -43,7 +43,7 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        UIManager.instance.HideAllMenus();
+        UIManager.instance.OpenHUD();
     }
 
     private bool IsGrounded()

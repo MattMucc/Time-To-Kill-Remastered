@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class WeaponHandler : MonoBehaviour
 {
@@ -7,11 +8,17 @@ public class WeaponHandler : MonoBehaviour
     private bool isReloading = false;
     private bool canShoot = true;
     private float nextFireTime = 0f;
+    private float reloadTimer = 0f;
 
     [Header("References")]
     [SerializeField] private Transform gunTip;
     [SerializeField] private Animator weaponAnimator;
     private PlayerInventory inventory;
+
+    [Header("Events")]
+    public UnityEvent OnReloadStart;
+    public UnityEvent<float> OnReloadProgress;
+    public UnityEvent OnReloadComplete;
 
     private void Start()
     {
@@ -19,6 +26,7 @@ public class WeaponHandler : MonoBehaviour
         if (!inventory)
             return;
 
+        UIManager.instance.RegisterWeaponHandler(this);
         inventory.OnWeaponSwitched.AddListener(OnWeaponSwitched);
         if (inventory.currentWeapon)
             OnWeaponSwitched(inventory.currentWeapon);
@@ -26,23 +34,71 @@ public class WeaponHandler : MonoBehaviour
 
     private void Update()
     {
-        if (!currentWeapon || !InputManager.instance || isReloading)
+        if (!InputManager.instance || !UIManager.instance)
             return;
 
         AttackInput();
         ReloadInput();
+        ThrowInput();
     }
 
     private void AttackInput()
     {
-        if (InputManager.instance.AttackHeld && Time.time >= nextFireTime)
+        if (!currentWeapon)
+            return;
+
+        if (InputManager.instance.AttackHeld && Time.time >= nextFireTime && currentWeapon.currentAmmo > 0f)
             TryFireWeapon();
+        else if (InputManager.instance.AttackHeld && currentWeapon.currentAmmo <= 0f && !isReloading)
+            ReloadStart();
     }
 
     private void ReloadInput()
     {
-        if (InputManager.instance.ReloadPressed && !currentWeapon.isMelee && currentWeapon.currentAmmo < currentWeapon.maxAmmo)
-            StartCoroutine(Reload());
+        if (!currentWeapon)
+            return;
+
+        if (isReloading)
+        {
+            reloadTimer -= Time.deltaTime;
+            float progress = 1f - (reloadTimer / currentWeapon.reloadTime);
+            OnReloadProgress?.Invoke(progress);
+            if (reloadTimer <= 0f)
+                ReloadFinish();
+        }
+
+        if (InputManager.instance.ReloadPressed && !isReloading)
+            ReloadStart();
+    }
+
+    private void ThrowInput()
+    {
+        if (!InputManager.instance.ThrowPressed || InputManager.instance.AttackHeld)
+            return;
+
+        if (inventory.ownedThrowables.Count <= 0)
+        {
+            Debug.LogWarning("You have no throwables to throw!");
+            return;
+        }
+
+        ThrowableSlot slot = inventory.ownedThrowables[0];
+        if (slot.quantity <= 0)
+        {
+            Debug.LogWarning("You have no throwables to throw!");
+            return;
+        }
+
+        WeaponData throwable = slot.throwableData;
+        if (!throwable)
+        {
+            Debug.LogWarning("Couldn't find WeaponData in ThrowableSlot!");
+            return;
+        }
+
+        inventory.UseThrowable(throwable);
+        Throw(throwable);
+        UIManager.instance.RegisterPlayerInventory(inventory);
     }
 
     private void TryFireWeapon()
@@ -50,12 +106,6 @@ public class WeaponHandler : MonoBehaviour
         if (currentWeapon.isMelee)
         {
             SwingMeleeWeapon();
-            return;
-        }
-
-        if (currentWeapon.currentAmmo <= 0)
-        {
-            StartCoroutine(Reload());
             return;
         }
 
@@ -104,6 +154,53 @@ public class WeaponHandler : MonoBehaviour
         StartCoroutine(MeleeCooldown());
     }
 
+    private void ReloadStart()
+    {
+        if (!currentWeapon || isReloading)
+            return;
+
+        isReloading = true;
+        reloadTimer = currentWeapon.reloadTime;
+        OnReloadStart?.Invoke();
+    }
+
+    private void ReloadFinish()
+    {
+        isReloading = false;
+        currentWeapon.currentAmmo = currentWeapon.maxAmmo;
+        OnReloadComplete?.Invoke();
+    }
+
+    private void Throw(WeaponData throwable)
+    {
+        if (!throwable.projectilePrefab)
+        {
+            Debug.LogWarning("Set throwable prefab in ProjectilePrefab field!");
+            return;
+        }
+
+        Camera cam = Camera.main;
+        if (!cam)
+            return;
+
+        Ray ray = new Ray(cam.transform.position + cam.transform.forward * 0.1f, cam.transform.forward);
+        Vector3 targetPos;
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+            targetPos = hit.point;
+        else
+            targetPos = cam.transform.position + cam.transform.forward * 1000f;
+
+        Vector3 direction = (targetPos - gunTip.position).normalized;
+        GameObject grenade = Instantiate(throwable.projectilePrefab, gunTip.position, Quaternion.LookRotation(direction));
+        grenade.GetComponent<Throwable>().damage = throwable.damage;
+        Rigidbody rb = grenade.GetComponent<Rigidbody>();
+        if (!rb)
+            return;
+
+        rb.AddForce(direction * 15f, ForceMode.VelocityChange);
+        rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.VelocityChange);
+    }
+
     private IEnumerator MeleeCooldown()
     {
         canShoot = false;
@@ -111,23 +208,11 @@ public class WeaponHandler : MonoBehaviour
         canShoot = true;
     }
 
-    private IEnumerator Reload()
-    {
-        isReloading = true;
-        if (weaponAnimator)
-            weaponAnimator.SetTrigger("Reload");
-
-        yield return new WaitForSeconds(currentWeapon.reloadTime);
-        currentWeapon.currentAmmo = currentWeapon.maxAmmo;
-        isReloading = false;
-        if (UIManager.instance)
-            UIManager.instance?.RegisterPlayerInventory(inventory);
-    }
-
     private void OnWeaponSwitched(WeaponData weapon)
     {
         currentWeapon = weapon;
         isReloading = false;
         nextFireTime = 0f;
+        OnReloadComplete?.Invoke(); // Hides reload UI and updates weapon UI
     }
 }

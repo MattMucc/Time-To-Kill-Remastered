@@ -24,4 +24,4 @@ MonoBehaviour:
   rateOfFire: 2
   reloadTime: 3
   maxAmmo: 5
-  currentAmmo: 1
+  currentAmmo: 3
