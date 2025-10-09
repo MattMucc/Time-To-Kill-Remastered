@@ -51,6 +51,7 @@ public class UIManager : MonoBehaviour
     private PlayerHealth playerHealth;
     private PlayerInventory playerInventory;
     private WeaponHandler weaponHandler;
+    private MultiplierSystem multiplierSystem;
 
     private void Awake()
     {
@@ -208,6 +209,28 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    public void RegisterMultiplierSystem(MultiplierSystem multiplier)
+    {
+        // Unsubscribe to old events
+        if (multiplierSystem)
+        {
+            multiplierSystem.OnMeterChanged.RemoveListener(UpdateMultiplierMeter);
+            multiplierSystem.OnMultiplierChanged.RemoveListener(UpdateMultiplierText);
+        }
+
+        // Subscribe to new multiplier system
+        multiplierSystem = multiplier;
+        if (multiplierSystem)
+        {
+            multiplierSystem.OnMeterChanged.AddListener(UpdateMultiplierMeter);
+            multiplierSystem.OnMultiplierChanged.AddListener(UpdateMultiplierText);
+
+            // Initialize UI
+            UpdateMultiplierMeter(multiplierSystem.meter);
+            UpdateMultiplierText(multiplierSystem.multiplier);
+        }
+    }
+
     private void UpdateShieldbar(float current, float max)
     {
         if (!shieldbar || !spText)
@@ -285,6 +308,22 @@ public class UIManager : MonoBehaviour
 
         reloadCircle.gameObject.SetActive(false);
         reloadText.gameObject.SetActive(false);
+    }
+
+    private void UpdateMultiplierMeter(float meter)
+    {
+        if (!multiplierMeter)
+            return;
+
+        multiplierMeter.fillAmount = Mathf.Clamp01(meter);
+    }
+
+    private void UpdateMultiplierText(int multiplier)
+    {
+        if (!multiplierText)
+            return;
+
+        multiplierText.text = $"x{multiplier}";
     }
 
     private void OnControlSchemeChanged(string scheme)

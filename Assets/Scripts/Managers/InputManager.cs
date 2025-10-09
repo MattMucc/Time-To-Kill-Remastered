@@ -18,6 +18,7 @@ public class InputManager : MonoBehaviour
     public bool JumpPressed { get; private set; }
     public bool SlideHeld { get; private set; }
 
+    public bool AimHeld { get; private set; }
     public bool AttackHeld { get; private set; }
     public bool ReloadPressed { get; private set; }
     public bool ThrowPressed { get; private set; }
@@ -49,6 +50,7 @@ public class InputManager : MonoBehaviour
         JumpPressed = controls.Player.Jump.WasPerformedThisFrame();
         SlideHeld = controls.Player.Slide.IsPressed();
 
+        AimHeld = controls.Player.Aim.IsPressed();
         AttackHeld = controls.Player.Attack.IsPressed();
         ReloadPressed = controls.Player.Reload.WasPerformedThisFrame();
         ThrowPressed = controls.Player.Throw.WasPerformedThisFrame();

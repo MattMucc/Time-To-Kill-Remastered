@@ -16,12 +16,24 @@ MonoBehaviour:
   weaponIcon: {fileID: 0}
   isMelee: 0
   isThrowable: 1
-  weaponPickupPrefab: {fileID: 4573379787405919413, guid: 5a19e39774773564a8e23e7fda1637a2, type: 3}
+  useProjectile: 1
   model: {fileID: 6287864197243340334, guid: ef29fe31fa086954a90e8a4ee8518b8f, type: 3}
+  weaponPickupPrefab: {fileID: 4573379787405919413, guid: 5a19e39774773564a8e23e7fda1637a2, type: 3}
   projectilePrefab: {fileID: 3542792048779726780, guid: 4b784bdb667aa11499a61c80fe368f4b, type: 3}
   muzzleFlash: {fileID: 0}
+  hitEffect: {fileID: 0}
   damage: 15
-  rateOfFire: 2
+  rateOfFire: 1
   reloadTime: 0
+  raycastRange: 100
+  hipfireSpread: 2
+  adsSpread: 0.5
+  recoilVertical: 0
+  recoilHorizontal: 0
+  recoilRecoveryRate: 8
+  adsTime: 0.2
+  adsFOV: 40
+  hipFOV: 60
+  pelletCount: 1
   maxAmmo: 0
   currentAmmo: 0

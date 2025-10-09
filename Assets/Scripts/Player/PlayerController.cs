@@ -63,10 +63,11 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
+        float speed = moveSpeed * GetComponent<MultiplierSystem>().GetSpeedMultiplier();
         moveInput = input.Move;
         Vector3 move = cameraTransform.forward * moveInput.y + cameraTransform.right * moveInput.x;
         move.y = 0f;
-        controller.Move(move * moveSpeed * Time.deltaTime);
+        controller.Move(move * speed * Time.deltaTime);
     }
 
     private void Jump()

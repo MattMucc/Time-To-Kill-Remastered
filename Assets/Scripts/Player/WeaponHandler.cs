@@ -5,6 +5,7 @@ using UnityEngine.Events;
 public class WeaponHandler : MonoBehaviour
 {
     private WeaponData currentWeapon;
+    private bool isAiming = false;
     private bool isReloading = false;
     private bool canShoot = true;
     private float nextFireTime = 0f;
@@ -13,7 +14,9 @@ public class WeaponHandler : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform gunTip;
     [SerializeField] private Animator weaponAnimator;
+    private Camera mainCamera;
     private PlayerInventory inventory;
+    private WeaponRecoilHandler recoilHandler;
 
     [Header("Events")]
     public UnityEvent OnReloadStart;
@@ -24,6 +27,14 @@ public class WeaponHandler : MonoBehaviour
     {
         inventory = GetComponent<PlayerInventory>();
         if (!inventory)
+            return;
+
+        mainCamera = Camera.main;
+        if (!mainCamera)
+            return;
+
+        recoilHandler = mainCamera.gameObject.transform.GetChild(0).GetComponent<WeaponRecoilHandler>();
+        if (!recoilHandler)
             return;
 
         UIManager.instance.RegisterWeaponHandler(this);
@@ -37,9 +48,19 @@ public class WeaponHandler : MonoBehaviour
         if (!InputManager.instance || !UIManager.instance)
             return;
 
+        ADSInput();
         AttackInput();
         ReloadInput();
         ThrowInput();
+    }
+
+    private void ADSInput()
+    {
+        if (!currentWeapon || !recoilHandler)
+            return;
+
+        isAiming = InputManager.instance.AimHeld && !isReloading;
+        recoilHandler.SetADS(isAiming, currentWeapon);
     }
 
     private void AttackInput()
@@ -47,7 +68,7 @@ public class WeaponHandler : MonoBehaviour
         if (!currentWeapon)
             return;
 
-        if (InputManager.instance.AttackHeld && Time.time >= nextFireTime && currentWeapon.currentAmmo > 0f)
+        if (InputManager.instance.AttackHeld && Time.time >= nextFireTime && currentWeapon.currentAmmo > 0f && !isReloading)
             TryFireWeapon();
         else if (InputManager.instance.AttackHeld && currentWeapon.currentAmmo <= 0f && !isReloading)
             ReloadStart();
@@ -124,22 +145,73 @@ public class WeaponHandler : MonoBehaviour
         if (!currentWeapon.projectilePrefab || !gunTip)
             return;
 
-        Camera cam = Camera.main;
-        if (!cam)
-            return;
+        // Multiple pellets for shotgun-style spread
+        for (int i = 0; i < Mathf.Min(1, currentWeapon.pelletCount); i++)
+        {
+            Vector3 spreadDir = GetSpreadDirection();
+            if (currentWeapon.useProjectile)
+            {
+                GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(spreadDir));
+                projectile.GetComponent<Projectile>().damage = currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier();
+            }
+            else
+            {
+                if (Physics.Raycast(mainCamera.transform.position, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
+                {
+                    /*if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
+                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());*/
 
-        Ray ray = new Ray(cam.transform.position + cam.transform.forward * 0.1f, cam.transform.forward);
+                    if (currentWeapon.hitEffect)
+                        Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                }
+            }
+        }
+
+        // Finding where the player is aiming
+        /*Ray ray = new Ray(mainCamera.transform.position + mainCamera.transform.forward * 0.1f, mainCamera.transform.forward);
         Vector3 targetPos;
         if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
             targetPos = hit.point;
         else
-            targetPos = cam.transform.position + cam.transform.forward * 1000f;
+            targetPos = mainCamera.transform.position + mainCamera.transform.forward * 1000f;
 
         Vector3 direction = (targetPos - gunTip.position).normalized;
-        GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(direction));
-        projectile.GetComponent<Projectile>().damage = currentWeapon.damage;
+        if (currentWeapon.useProjectile)
+        {
+            GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(direction));
+            projectile.GetComponent<Projectile>().damage = currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier();
+        }
+        else
+        {
+            if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hitInfo, currentWeapon.raycastRange))
+            {
+                if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
+                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
+
+                // Spawn impact/hit effect
+                if (currentWeapon.hitEffect)
+                    Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+            }
+        }*/
+
+        // Spawn muzzle flash
         if (currentWeapon.muzzleFlash)
-            Instantiate(currentWeapon.muzzleFlash, gunTip.position, Quaternion.LookRotation(direction));
+            Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
+
+        // Apply recoil
+        if (recoilHandler)
+            recoilHandler.ApplyRecoil(currentWeapon);
+    }
+
+    private Vector3 GetSpreadDirection()
+    {
+        float spreadAngle = isAiming ? currentWeapon.adsSpread : currentWeapon.hipfireSpread;
+        Vector3 spread = Vector3.zero;
+        spread += mainCamera.transform.up * Random.Range(-spreadAngle, spreadAngle);
+        spread += mainCamera.transform.right * Random.Range(-spreadAngle, spreadAngle);
+
+        Vector3 direction = (mainCamera.transform.forward + spread * 0.01f).normalized;
+        return direction;
     }
 
     private void SwingMeleeWeapon()
@@ -160,7 +232,7 @@ public class WeaponHandler : MonoBehaviour
             return;
 
         isReloading = true;
-        reloadTimer = currentWeapon.reloadTime;
+        reloadTimer = currentWeapon.reloadTime * GetComponent<MultiplierSystem>().GetReloadSpeedMultiplier();
         OnReloadStart?.Invoke();
     }
 

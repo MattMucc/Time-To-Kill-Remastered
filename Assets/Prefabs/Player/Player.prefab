@@ -40,6 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7712425079408962426}
+  - component: {fileID: 5609883955415471726}
   m_Layer: 0
   m_Name: WeaponRoot
   m_TagString: Untagged
@@ -63,6 +64,24 @@ Transform:
   - {fileID: 9047606266291477022}
   m_Father: {fileID: 2733484752409803505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5609883955415471726
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2324875811491563577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b83bb980c21aac146afc440aca372833, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enablePositionKickback: 1
+  kickbackDistance: 0.05
+  kickbackRecoverySpeed: 10
+  enableCameraRecoil: 1
+  cameraKickPercent: 0.3
+  cameraRoot: {fileID: 63936895865666064}
 --- !u!1 &2700178005584318944
 GameObject:
   m_ObjectHideFlags: 0
@@ -80,6 +99,7 @@ GameObject:
   - component: {fileID: 5266276683089128988}
   - component: {fileID: 1919877690898151171}
   - component: {fileID: 1753239890257135124}
+  - component: {fileID: 5139324440003286430}
   - component: {fileID: 795590896702839860}
   m_Layer: 0
   m_Name: Player
@@ -303,6 +323,111 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gunTip: {fileID: 6865902083759442570}
   weaponAnimator: {fileID: 0}
+  OnReloadStart:
+    m_PersistentCalls:
+      m_Calls: []
+  OnReloadProgress:
+    m_PersistentCalls:
+      m_Calls: []
+  OnReloadComplete:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5139324440003286430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2700178005584318944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51408a10a20f5434d95a71236d85d38b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxMultiplier: 3
+  baseDecayDelay: 3
+  baseDecayRate: 0.25
+  gradualDecay: 0
+  adaptiveDecay: 0
+  fillPerKill: 0.25
+  fillPerDamage: 0.01
+  fillPerHeadshot: 0.05
+  fillPerSlideHit: 0.1
+  fillPerGrappleHit: 0.1
+  decayDelayCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 2
+      value: 0.7
+      inSlope: -0.0011446953
+      outSlope: -0.0011446953
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.625
+    - serializedVersion: 3
+      time: 3
+      value: 0.5
+      inSlope: -0.24999997
+      outSlope: -0.24999997
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  decayRateCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 2
+      value: 1.2
+      inSlope: 0.0021142573
+      outSlope: 0.0021142573
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.6166667
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 3
+      value: 1.5
+      inSlope: -0.00028896332
+      outSlope: -0.00028896332
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.375
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  meter: 0
+  multiplier: 1
+  OnMultiplierChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMeterChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &795590896702839860
 MonoBehaviour:
   m_ObjectHideFlags: 0
