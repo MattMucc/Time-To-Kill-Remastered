@@ -158,8 +158,8 @@ public class WeaponHandler : MonoBehaviour
             {
                 if (Physics.Raycast(mainCamera.transform.position, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
                 {
-                    /*if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
-                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());*/
+                    if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
+                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
 
                     if (currentWeapon.hitEffect)
                         Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));

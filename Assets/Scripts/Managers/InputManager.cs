@@ -16,6 +16,7 @@ public class InputManager : MonoBehaviour
     public Vector2 Look { get; private set; }
 
     public bool JumpPressed { get; private set; }
+    public bool SlidePressed { get; private set; }
     public bool SlideHeld { get; private set; }
 
     public bool AimHeld { get; private set; }
@@ -48,6 +49,7 @@ public class InputManager : MonoBehaviour
         Move = controls.Player.Move.ReadValue<Vector2>();
         Look = controls.Player.Look.ReadValue<Vector2>();
         JumpPressed = controls.Player.Jump.WasPerformedThisFrame();
+        SlidePressed = controls.Player.Slide.WasPerformedThisFrame();
         SlideHeld = controls.Player.Slide.IsPressed();
 
         AimHeld = controls.Player.Aim.IsPressed();

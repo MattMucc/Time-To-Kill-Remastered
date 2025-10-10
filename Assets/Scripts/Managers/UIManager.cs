@@ -318,12 +318,20 @@ public class UIManager : MonoBehaviour
         multiplierMeter.fillAmount = Mathf.Clamp01(meter);
     }
 
-    private void UpdateMultiplierText(int multiplier)
+    public void UpdateMultiplierText(int multiplier)
     {
         if (!multiplierText)
             return;
 
         multiplierText.text = $"x{multiplier}";
+    }
+
+    public void UpdateSlideCooldown(float progress)
+    {
+        if (!slideCooldownImage)
+            return;
+
+        slideCooldownImage.fillAmount = Mathf.Clamp01(progress);
     }
 
     private void OnControlSchemeChanged(string scheme)
