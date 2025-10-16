@@ -335,6 +335,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 28330249}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &37393156 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 63936895865666064, guid: a631c8da7672bb544bbd1890e24ff99b, type: 3}
+  m_PrefabInstance: {fileID: 2124603478148125268}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &40503377
 GameObject:
   m_ObjectHideFlags: 0
@@ -2595,6 +2600,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 121053673239592522, guid: a631c8da7672bb544bbd1890e24ff99b, type: 3}
+      propertyPath: cameraRoot
+      value: 
+      objectReference: {fileID: 37393156}
     - target: {fileID: 2700178005584318944, guid: a631c8da7672bb544bbd1890e24ff99b, type: 3}
       propertyPath: m_Name
       value: Player

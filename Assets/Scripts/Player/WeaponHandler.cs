@@ -4,6 +4,23 @@ using UnityEngine.Events;
 
 public class WeaponHandler : MonoBehaviour
 {
+    [Header("ADS Settings")]
+    public float adsSpeedLimitMultiplier = 1.1f; // Greater than base move speed
+    public bool restrictADSAtHighSpeed = false;
+    private float lastADSFOV = -1f;
+    private bool lastAimState = false;
+
+    [Header("Kickback Settings")]
+    public float kickbackDistance = 0.05f;
+    public float kickbackRotation = 5f; // Degress upwards
+    public float kickbackReturnSpeed = 10f;
+    public bool enableWeaponKickback = true;
+
+    private Vector3 originalWeaponPos;
+    private Quaternion originalWeaponRot;
+    private Vector3 kickOffset;
+    private Quaternion kickRot;
+
     private WeaponData currentWeapon;
     private bool isAiming = false;
     private bool isReloading = false;
@@ -15,8 +32,10 @@ public class WeaponHandler : MonoBehaviour
     [SerializeField] private Transform gunTip;
     [SerializeField] private Animator weaponAnimator;
     private Camera mainCamera;
+    private PlayerController movement;
     private PlayerInventory inventory;
-    private WeaponRecoilHandler recoilHandler;
+    private MultiplierSystem multiplier;
+    private CameraEffects cameraEffects;
 
     [Header("Events")]
     public UnityEvent OnReloadStart;
@@ -33,14 +52,17 @@ public class WeaponHandler : MonoBehaviour
         if (!mainCamera)
             return;
 
-        recoilHandler = mainCamera.gameObject.transform.GetChild(0).GetComponent<WeaponRecoilHandler>();
-        if (!recoilHandler)
-            return;
+        cameraEffects = mainCamera.GetComponent<CameraEffects>();
+        originalWeaponPos = transform.localPosition;
+        originalWeaponRot = transform.localRotation;
 
         UIManager.instance.RegisterWeaponHandler(this);
         inventory.OnWeaponSwitched.AddListener(OnWeaponSwitched);
         if (inventory.currentWeapon)
             OnWeaponSwitched(inventory.currentWeapon);
+
+        movement = GetComponent<PlayerController>();
+        multiplier = GetComponent<MultiplierSystem>();
     }
 
     private void Update()
@@ -52,15 +74,31 @@ public class WeaponHandler : MonoBehaviour
         AttackInput();
         ReloadInput();
         ThrowInput();
+        UpdateWeaponKickback();
     }
 
     private void ADSInput()
     {
-        if (!currentWeapon || !recoilHandler)
+        if (!currentWeapon || !cameraEffects)
             return;
 
-        isAiming = InputManager.instance.AimHeld && !isReloading;
-        recoilHandler.SetADS(isAiming, currentWeapon);
+        bool wantAim = InputManager.instance.AimHeld && !isReloading;
+        if (restrictADSAtHighSpeed)
+        {
+            float baseSpeed = movement.moveSpeed * multiplier.GetSpeedMultiplier();
+            if (baseSpeed > movement.moveSpeed * adsSpeedLimitMultiplier)
+                isAiming = false;
+        }
+
+        float target = wantAim ? currentWeapon.adsFOV : currentWeapon.hipFOV;
+        if (wantAim != lastAimState || !Mathf.Approximately(target, lastADSFOV))
+        {
+            cameraEffects.SetADS(wantAim, target);
+            lastAimState = wantAim;
+            lastADSFOV = target;
+        }
+
+        isAiming = wantAim;
     }
 
     private void AttackInput()
@@ -122,6 +160,18 @@ public class WeaponHandler : MonoBehaviour
         UIManager.instance.RegisterPlayerInventory(inventory);
     }
 
+    private void UpdateWeaponKickback()
+    {
+        if (!enableWeaponKickback)
+            return;
+
+        transform.localPosition = Vector3.Lerp(transform.localPosition, originalWeaponPos + kickOffset, kickbackReturnSpeed * Time.deltaTime);
+        transform.localRotation = Quaternion.Slerp(transform.localRotation, originalWeaponRot * kickRot, kickbackReturnSpeed * Time.deltaTime);
+
+        kickOffset = Vector3.Lerp(kickOffset, Vector3.zero, kickbackReturnSpeed * Time.deltaTime);
+        kickRot = Quaternion.Slerp(kickRot, Quaternion.identity, kickbackReturnSpeed * Time.deltaTime);
+    }
+
     private void TryFireWeapon()
     {
         if (currentWeapon.isMelee)
@@ -167,40 +217,24 @@ public class WeaponHandler : MonoBehaviour
             }
         }
 
-        // Finding where the player is aiming
-        /*Ray ray = new Ray(mainCamera.transform.position + mainCamera.transform.forward * 0.1f, mainCamera.transform.forward);
-        Vector3 targetPos;
-        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
-            targetPos = hit.point;
-        else
-            targetPos = mainCamera.transform.position + mainCamera.transform.forward * 1000f;
-
-        Vector3 direction = (targetPos - gunTip.position).normalized;
-        if (currentWeapon.useProjectile)
-        {
-            GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(direction));
-            projectile.GetComponent<Projectile>().damage = currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier();
-        }
-        else
-        {
-            if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hitInfo, currentWeapon.raycastRange))
-            {
-                if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
-                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
-
-                // Spawn impact/hit effect
-                if (currentWeapon.hitEffect)
-                    Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
-            }
-        }*/
-
         // Spawn muzzle flash
         if (currentWeapon.muzzleFlash)
             Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
 
-        // Apply recoil
-        if (recoilHandler)
-            recoilHandler.ApplyRecoil(currentWeapon);
+        // Apply camera recoil
+        if (cameraEffects)
+        {
+            float vertical = currentWeapon.recoilVertical;
+            float horizontal = currentWeapon.recoilHorizontal;
+            cameraEffects.AddRecoil(vertical, horizontal);
+        }
+
+        // Apply weapon visual kickback
+        if (enableWeaponKickback)
+        {
+            kickOffset = -transform.forward * kickbackDistance;
+            kickRot = Quaternion.Euler(-kickbackRotation, 0f, 0f);
+        }
     }
 
     private Vector3 GetSpreadDirection()

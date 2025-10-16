@@ -26,9 +26,11 @@ public class SlideAttack : MonoBehaviour
     public float continuousDamageInterval = 0.5f;
 
     [Header("References")]
+    [SerializeField] private Transform playerTransform;
     [SerializeField] private Collider slideCollider;
     private PlayerController movement;
     private MultiplierSystem multiplier;
+    private CameraEffects cameraEffects;
     private CharacterController controller;
 
     private bool canSlide = true;
@@ -38,8 +40,10 @@ public class SlideAttack : MonoBehaviour
 
     private void Start()
     {
+        playerTransform = transform;
         movement = GetComponent<PlayerController>();
         multiplier = GetComponent<MultiplierSystem>();
+        cameraEffects = Camera.main.gameObject.GetComponent<CameraEffects>();
         controller = GetComponent<CharacterController>();
         slideCollider.enabled = false;
     }
@@ -97,6 +101,18 @@ public class SlideAttack : MonoBehaviour
 
             return;
         }
+        else
+        {
+            // Slightly re-trigger FOV burst when slidinmg downhill or movement spikes mid-slide
+            if (currentSpeed > movement.moveSpeed * 1.1f)
+            {
+                if (cameraEffects)
+                {
+                    float normalizedSpeed = Mathf.InverseLerp(movement.moveSpeed, slideSpeedBoost, currentSpeed);
+                    cameraEffects.TriggerFOVBurst(normalizedSpeed * 0.5f); // Smaller continuous boost
+                }
+            }
+        }
 
         // While sliding, gradually decay speed
         float targetSlideSpeed = crouchSpeed;
@@ -121,6 +137,12 @@ public class SlideAttack : MonoBehaviour
         canSlide = false;
         currentSpeed = slideSpeedBoost * multiplier.GetSpeedMultiplier();
         slideCollider.enabled = true;
+        if (cameraEffects)
+        {
+            float normalizedSpeed = Mathf.InverseLerp(movement.moveSpeed, slideSpeedBoost, currentSpeed);
+            cameraEffects.TriggerFOVBurst(normalizedSpeed);
+
+        }
     }
 
     private void StopSlide()

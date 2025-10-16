@@ -71,7 +71,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7712425079408962426}
-  - component: {fileID: 5609883955415471726}
   m_Layer: 0
   m_Name: WeaponRoot
   m_TagString: Untagged
@@ -95,24 +94,6 @@ Transform:
   - {fileID: 9047606266291477022}
   m_Father: {fileID: 2733484752409803505}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5609883955415471726
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2324875811491563577}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b83bb980c21aac146afc440aca372833, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  enablePositionKickback: 1
-  kickbackDistance: 0.05
-  kickbackRecoverySpeed: 10
-  enableCameraRecoil: 1
-  cameraKickPercent: 0.3
-  cameraRoot: {fileID: 63936895865666064}
 --- !u!1 &2700178005584318944
 GameObject:
   m_ObjectHideFlags: 0
@@ -384,6 +365,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 844d0c91fd3274345989d200d3a57d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  kickbackDistance: 0.05
+  kickbackRotation: 5
+  kickbackReturnSpeed: 10
+  enableWeaponKickback: 1
   gunTip: {fileID: 6865902083759442570}
   weaponAnimator: {fileID: 0}
   OnReloadStart:
@@ -515,6 +500,7 @@ MonoBehaviour:
   slideAttackDamage: 10
   enableContinuousDamage: 0
   continuousDamageInterval: 0.5
+  playerTransform: {fileID: 0}
   slideCollider: {fileID: 3603200276705451684}
 --- !u!114 &795590896702839860
 MonoBehaviour:
@@ -558,6 +544,7 @@ GameObject:
   - component: {fileID: 9152637711501937624}
   - component: {fileID: 2311786672107039227}
   - component: {fileID: 121053673239592522}
+  - component: {fileID: 3422034225594055173}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -654,6 +641,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerTransform: {fileID: 8714590750173940197}
   sensitivity: 200
+--- !u!114 &3422034225594055173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4306241435837372704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b17dea9d1aaaa34591d1ede0a6e5ddf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normalFOV: 60
+  fovChangeSpeed: 8
+  maxBurstIncrease: 100
+  burstFadeSpeed: 1.5
+  speedNormalizeMax: 8
+  scaleBurstWithSpeed: 1
+  adsBlendSpeed: 10
+  isADS: 0
+  recoilRecoverySpeed: 8
+  enableCameraRecoil: 1
+  playerTransform: {fileID: 8714590750173940197}
+  cameraRoot: {fileID: 63936895865666064}
 --- !u!1 &5340015761817146813
 GameObject:
   m_ObjectHideFlags: 0
