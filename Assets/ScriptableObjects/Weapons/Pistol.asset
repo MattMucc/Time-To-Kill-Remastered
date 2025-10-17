@@ -19,7 +19,7 @@ MonoBehaviour:
   useProjectile: 0
   model: {fileID: 2870409809435482927, guid: bd2dd14f5ce154a47ac70e0d894a643e, type: 3}
   weaponPickupPrefab: {fileID: 8485138196942842586, guid: 12cefe6b5edbcde4086c31ec560baecf, type: 3}
-  projectilePrefab: {fileID: 6650961599813636626, guid: f2723027473426b4ea21d114505bbd31, type: 3}
+  projectilePrefab: {fileID: 0}
   muzzleFlash: {fileID: 0}
   hitEffect: {fileID: 0}
   damage: 10
@@ -36,4 +36,4 @@ MonoBehaviour:
   hipFOV: 60
   pelletCount: 1
   maxAmmo: 10
-  currentAmmo: 3
+  currentAmmo: 10

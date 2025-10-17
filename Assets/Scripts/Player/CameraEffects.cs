@@ -29,19 +29,6 @@ public class CameraEffects : MonoBehaviour
     private float adsTargetWeight = 0f;
     private float adsWeightVel = 0f; // Optional: If you use SmoothDamp
 
-    [Header("Recoil Settings")]
-    public float recoilRecoverySpeed = 8f;
-    public bool enableCameraRecoil = true;
-
-    public float currentRecoilPitch = 0f;
-    public float currentRecoilYaw = 0f;
-
-    private float recoilX;
-    private float recoilY;
-    private float recoilVelocityX;
-    private float recoilVelocityY;
-    private float appliedYawOffset = 0f;
-
     [Header("References (Optional)")]
     public Transform playerTransform;
     public Transform cameraRoot;
@@ -66,7 +53,6 @@ public class CameraEffects : MonoBehaviour
     private void LateUpdate()
     {
         UpdateFOV();
-        UpdateRecoil();
     }
 
     private void UpdateFOV()
@@ -104,52 +90,6 @@ public class CameraEffects : MonoBehaviour
         isADS = aiming;
         adsFOVTarget = targetFOV;
         adsTargetWeight = aiming ? 1f : 0f;
-    }
-
-    public void AddRecoil(float vertical, float horizontal)
-    {
-        if (!enableCameraRecoil)
-            return;
-
-        recoilX += vertical;
-        recoilY += horizontal;
-    }
-
-    private void UpdateRecoil()
-    {
-        if (!enableCameraRecoil)
-        {
-            currentRecoilPitch = Mathf.MoveTowards(currentRecoilPitch, 0f, recoilRecoverySpeed * Time.deltaTime);
-            currentRecoilYaw = Mathf.MoveTowards(currentRecoilYaw, 0f, recoilRecoverySpeed * Time.deltaTime);
-            return;
-        }
-
-        recoilX = Mathf.SmoothDamp(recoilX, 0f, ref recoilVelocityX, 1f / recoilRecoverySpeed);
-        recoilY = Mathf.SmoothDamp(recoilY, 0f, ref recoilVelocityY, 1f / recoilRecoverySpeed);
-        currentRecoilPitch = recoilX;
-        currentRecoilYaw = recoilY;
-
-        /*if (!enableCameraRecoil || !cameraRoot)
-            return;
-
-        // Smooth decay back to nuetral
-        recoilX = Mathf.SmoothDamp(recoilX, 0f, ref recoilVelocityX, 1f / recoilRecoverySpeed);
-        recoilY = Mathf.SmoothDamp(recoilY, 0f, ref recoilVelocityY, 1f / recoilRecoverySpeed);
-
-        float basePitch = cameraRoot.localEulerAngles.x;
-        if (basePitch > 180f)
-            basePitch -= 360f;
-
-        float finalPitch = basePitch - recoilX; // Pushes view upwards
-        cameraRoot.localRotation = Quaternion.Euler(finalPitch, 0f, 0f);
-
-        float desiredYawOffset = recoilY;
-        float deltaYaw = desiredYawOffset - appliedYawOffset;
-        if (Mathf.Abs(deltaYaw) > 0.0001f)
-        {
-            playerTransform.Rotate(0f, deltaYaw, 0f, Space.World);
-            appliedYawOffset = desiredYawOffset;
-        }*/
     }
 
     private float GetSpeed()

@@ -365,9 +365,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 844d0c91fd3274345989d200d3a57d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  adsSpeedLimitMultiplier: 1.1
+  restrictADSAtHighSpeed: 1
   kickbackDistance: 0.05
   kickbackRotation: 5
-  kickbackReturnSpeed: 10
+  kickbackReturnSpeed: 2
   enableWeaponKickback: 1
   gunTip: {fileID: 6865902083759442570}
   weaponAnimator: {fileID: 0}
@@ -639,8 +641,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c068b39a348cfa408105c2af736ba83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerTransform: {fileID: 8714590750173940197}
   sensitivity: 200
+  playerTransform: {fileID: 8714590750173940197}
+  cameraRoot: {fileID: 63936895865666064}
 --- !u!114 &3422034225594055173
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -663,6 +666,8 @@ MonoBehaviour:
   isADS: 0
   recoilRecoverySpeed: 8
   enableCameraRecoil: 1
+  currentRecoilPitch: 0
+  currentRecoilYaw: 0
   playerTransform: {fileID: 8714590750173940197}
   cameraRoot: {fileID: 63936895865666064}
 --- !u!1 &5340015761817146813

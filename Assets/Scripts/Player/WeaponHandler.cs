@@ -33,9 +33,10 @@ public class WeaponHandler : MonoBehaviour
     [SerializeField] private Animator weaponAnimator;
     private Camera mainCamera;
     private PlayerController movement;
+    private CameraController camController;
     private PlayerInventory inventory;
     private MultiplierSystem multiplier;
-    private CameraEffects cameraEffects;
+    private CameraEffects camEffects;
 
     [Header("Events")]
     public UnityEvent OnReloadStart;
@@ -52,7 +53,8 @@ public class WeaponHandler : MonoBehaviour
         if (!mainCamera)
             return;
 
-        cameraEffects = mainCamera.GetComponent<CameraEffects>();
+        camController = mainCamera.GetComponent<CameraController>();
+        camEffects = mainCamera.GetComponent<CameraEffects>();
         originalWeaponPos = transform.localPosition;
         originalWeaponRot = transform.localRotation;
 
@@ -79,7 +81,7 @@ public class WeaponHandler : MonoBehaviour
 
     private void ADSInput()
     {
-        if (!currentWeapon || !cameraEffects)
+        if (!currentWeapon || !camEffects)
             return;
 
         bool wantAim = InputManager.instance.AimHeld && !isReloading;
@@ -93,7 +95,7 @@ public class WeaponHandler : MonoBehaviour
         float target = wantAim ? currentWeapon.adsFOV : currentWeapon.hipFOV;
         if (wantAim != lastAimState || !Mathf.Approximately(target, lastADSFOV))
         {
-            cameraEffects.SetADS(wantAim, target);
+            camEffects.SetADS(wantAim, target);
             lastAimState = wantAim;
             lastADSFOV = target;
         }
@@ -180,9 +182,9 @@ public class WeaponHandler : MonoBehaviour
             return;
         }
 
+        FireProjectile();
         currentWeapon.currentAmmo--;
         nextFireTime = Time.time + currentWeapon.rateOfFire;
-        FireProjectile();
         if (weaponAnimator)
             weaponAnimator.SetTrigger("Fire");
 
@@ -192,19 +194,19 @@ public class WeaponHandler : MonoBehaviour
 
     private void FireProjectile()
     {
-        if (!currentWeapon.projectilePrefab || !gunTip)
+        if (!gunTip)
             return;
 
         // Multiple pellets for shotgun-style spread
         for (int i = 0; i < Mathf.Min(1, currentWeapon.pelletCount); i++)
         {
             Vector3 spreadDir = GetSpreadDirection();
-            if (currentWeapon.useProjectile)
+            if (currentWeapon.useProjectile && currentWeapon.projectilePrefab)
             {
                 GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(spreadDir));
                 projectile.GetComponent<Projectile>().damage = currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier();
             }
-            else
+            else if (!currentWeapon.useProjectile)
             {
                 if (Physics.Raycast(mainCamera.transform.position, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
                 {
@@ -222,11 +224,16 @@ public class WeaponHandler : MonoBehaviour
             Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
 
         // Apply camera recoil
-        if (cameraEffects)
+        if (camController)
         {
-            float vertical = currentWeapon.recoilVertical;
-            float horizontal = currentWeapon.recoilHorizontal;
-            cameraEffects.AddRecoil(vertical, horizontal);
+            bool aiming = isAiming;
+            float recoilVert = aiming ? currentWeapon.recoilVertical * currentWeapon.adsRecoilVerticalMultiplier : currentWeapon.recoilVertical; // ADS = reduced recoil
+            float recoilHoriz = aiming ? currentWeapon.recoilHorizontal * currentWeapon.adsRecoilHorizontalMultiplier : currentWeapon.recoilHorizontal; // ADS = reduced recoil
+
+            // Random variation
+            float randPitch = Random.Range(recoilVert * 0.8f, recoilVert); // Never go negative; we want the recoil to always climb upwards
+            float randYaw = Random.Range(-recoilHoriz, recoilHoriz);
+            camController.AddRecoil(randPitch, randYaw);
         }
 
         // Apply weapon visual kickback

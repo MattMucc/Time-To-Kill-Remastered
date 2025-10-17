@@ -52,10 +52,14 @@ public class CameraController : MonoBehaviour
         pitch -= mouseY;
         pitch = Mathf.Clamp(pitch, -89f, 89f);
 
-        float rPitch = cameraEffects ? cameraEffects.currentRecoilPitch : 0f;
-        float rYaw = cameraEffects ? cameraEffects.currentRecoilYaw : 0f;
+        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        playerTransform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+    }
 
-        cameraRoot.localRotation = Quaternion.Euler(pitch - rPitch, 0f, 0f);
-        playerTransform.localRotation = Quaternion.Euler(0f, yaw + rYaw, 0f);
+    public void AddRecoil(float pitchRecoil, float yawRecoil)
+    {
+        pitch -= pitchRecoil;
+        yaw += yawRecoil;
+        pitch = Mathf.Clamp(pitch, -89f, 89f);
     }
 }

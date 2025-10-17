@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d75ec4cd4481284cbcfda7eae7e65cb, type: 3}
+  m_Name: AutomaticRifle
+  m_EditorClassIdentifier: 
+  weaponName: Automatic Rifle
+  weaponIcon: {fileID: 0}
+  isMelee: 0
+  isThrowable: 0
+  useProjectile: 0
+  model: {fileID: 3891092595133651499, guid: f26f191617b1db240be47ab00a825ff2, type: 3}
+  weaponPickupPrefab: {fileID: 513145820295484402, guid: 83df63e76ca9dc0459b5ef609afa4440, type: 3}
+  projectilePrefab: {fileID: 0}
+  muzzleFlash: {fileID: 0}
+  hitEffect: {fileID: 0}
+  damage: 7
+  rateOfFire: 0.1
+  reloadTime: 2
+  raycastRange: 100
+  hipfireSpread: 2
+  adsSpread: 1
+  recoilVertical: 2
+  recoilHorizontal: 1
+  recoilRecoveryRate: 8
+  adsTime: 0.2
+  adsFOV: 40
+  hipFOV: 60
+  pelletCount: 1
+  maxAmmo: 25
+  currentAmmo: 25

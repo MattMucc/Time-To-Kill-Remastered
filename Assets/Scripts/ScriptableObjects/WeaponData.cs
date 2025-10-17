@@ -26,23 +26,35 @@ public class WeaponData : ScriptableObject
     public float rateOfFire = 0.2f;
     public float reloadTime = 1f;
     public float raycastRange = 100f;
+
+    [Tooltip("Number of rays to shoot for shotgun-style weapons (default = 1).")]
+    public int pelletCount = 1;
+
+    [Tooltip("0 = unlimited (for melee)")]
+    public float maxAmmo = 10f;
+    public float currentAmmo = 10f; // For firearms
+
+    [Header("Spread")]
     public float hipfireSpread = 2f;
     public float adsSpread = 0.5f;
+
+    [Header("Recoil")]
     public float recoilVertical = 2f;
     public float recoilHorizontal = 1f;
+
+    [Tooltip("A multiplier applied to the recoil while in ADS (lower = less recoil in ADS)")]
+    public float adsRecoilVerticalMultiplier = 0.6f;
+
+    [Tooltip("A multiplier applied to the recoil while in ADS (lower = less recoil in ADS)")]
+    public float adsRecoilHorizontalMultiplier = 0.6f;
 
     [Tooltip("How quickly the camera recenters after recoil (higher = faster).")]
     public float recoilRecoveryRate = 5f;
     public float adsTime = 0.2f;
+
+    [Header("FOV")]
     public float adsFOV = 40f;
 
     [Tooltip("Normal FOV (default = 60)")]
     public float hipFOV = 60f;
-
-    [Tooltip("Number of rays to shoot for shotgun-style weapons (default = 1).")]
-    public int pelletCount = 1;
-    
-    [Tooltip("0 = unlimited (for melee)")]
-    public float maxAmmo = 10f;
-    public float currentAmmo = 10f; // For firearms
 }
