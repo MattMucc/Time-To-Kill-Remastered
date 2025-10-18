@@ -1,2 +1,18 @@
 fileFormatVersion: 2
 guid: 4d75ec4cd4481284cbcfda7eae7e65cb
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - weaponIcon: {instanceID: 0}
+  - model: {instanceID: 0}
+  - weaponPickupPrefab: {instanceID: 0}
+  - projectilePrefab: {instanceID: 0}
+  - muzzleFlash: {fileID: 3795609276067296776, guid: 8029c564ecc211145829e640f6339e11, type: 3}
+  - hitEffect: {fileID: 3776657940725007942, guid: bc37fd9e59a436546b4f7f2840af0c96, type: 3}
+  - misfireHitEffect: {fileID: 1689076858994417672, guid: 2f5db62a65620e043a424dd0a8fdffbc, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

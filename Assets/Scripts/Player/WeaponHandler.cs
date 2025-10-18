@@ -209,17 +209,30 @@ public class WeaponHandler : MonoBehaviour
                 if (Physics.Raycast(mainCamera.transform.position, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
                 {
                     if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
-                    enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
+                    {
+                        enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
+                        if (currentWeapon.hitEffect)
+                        {
+                            GameObject hitEffect = Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                            Destroy(hitEffect, 1f);
+                        }
+                    }
 
-                    if (currentWeapon.hitEffect)
-                        Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                    if (currentWeapon.misfireHitEffect)
+                    {
+                        GameObject hitEffect = Instantiate(currentWeapon.misfireHitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                        Destroy(hitEffect, 1f);
+                    }
                 }
             }
         }
 
         // Spawn muzzle flash
         if (currentWeapon.muzzleFlash)
-            Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
+        {
+            GameObject muzzleFlash = Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
+            Destroy(muzzleFlash, 1f);
+        }
 
         // Apply recoil force to the player
         if (movement && currentWeapon.recoilForce > 0f)

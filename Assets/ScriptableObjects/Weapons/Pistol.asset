@@ -20,8 +20,9 @@ MonoBehaviour:
   model: {fileID: 2870409809435482927, guid: bd2dd14f5ce154a47ac70e0d894a643e, type: 3}
   weaponPickupPrefab: {fileID: 8485138196942842586, guid: 12cefe6b5edbcde4086c31ec560baecf, type: 3}
   projectilePrefab: {fileID: 0}
-  muzzleFlash: {fileID: 0}
-  hitEffect: {fileID: 0}
+  muzzleFlash: {fileID: 3795609276067296776, guid: 8029c564ecc211145829e640f6339e11, type: 3}
+  hitEffect: {fileID: 3776657940725007942, guid: bc37fd9e59a436546b4f7f2840af0c96, type: 3}
+  misfireHitEffect: {fileID: 1689076858994417672, guid: 2f5db62a65620e043a424dd0a8fdffbc, type: 3}
   damage: 10
   rateOfFire: 0.5
   reloadTime: 2
@@ -29,7 +30,7 @@ MonoBehaviour:
   raycastRange: 100
   pelletCount: 1
   maxAmmo: 10
-  currentAmmo: 4
+  currentAmmo: 10
   hipfireSpread: 1
   adsSpread: 0.1
   recoilVertical: 1

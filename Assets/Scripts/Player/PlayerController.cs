@@ -8,11 +8,14 @@ public class PlayerController : MonoBehaviour
     public float jumpHeight = 2f;
     public int maxJumps = 2;
     public int jumpCount = 0;
+    public float jumpGraceDuration = 0.1f;
 
     [Tooltip("How fast the external force fades out (higher = faster, 5 feels snappier, 2 feels floatier).")]
     public float externalForceDecayRate = 5f;
     public bool isGrounded = true;
     public bool overrideSpeed = false;
+    private bool justJumped = false;
+    private float jumpGraceTimer = 0f;
 
     [Header("Ground Check Settings")]
     public Transform groundCheckOrigin;
@@ -62,12 +65,24 @@ public class PlayerController : MonoBehaviour
     private void GroundCheck()
     {
         Vector3 origin = groundCheckOrigin ? groundCheckOrigin.position : transform.position;
+        bool wasGrounded = isGrounded;
         isGrounded = Physics.CheckSphere(origin + Vector3.down * groundCheckDistance, groundCheckRadius, groundLayer, QueryTriggerInteraction.Ignore);
 
         // Prevents floating frames when falling at a fast speed
         if (isGrounded && velocity.y < 0)
             velocity.y = -2f;
 
+        // Prevents ground check from not counting first jump
+        if (justJumped)
+        {
+            jumpGraceTimer -= Time.deltaTime;
+            if (jumpGraceTimer <= 0f)
+                justJumped = false;
+
+            return; // Skip resetting jump counter while in grace period
+        }
+
+        // Resets jump count if we've truly landed
         if (isGrounded && jumpCount > 0)
             jumpCount = 0;
     }
@@ -90,6 +105,8 @@ public class PlayerController : MonoBehaviour
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
+            justJumped = true;
+            jumpGraceTimer = jumpGraceDuration;
         }
     }
 

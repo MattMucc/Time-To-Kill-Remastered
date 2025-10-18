@@ -20,11 +20,13 @@ MonoBehaviour:
   model: {fileID: 3891092595133651499, guid: f26f191617b1db240be47ab00a825ff2, type: 3}
   weaponPickupPrefab: {fileID: 513145820295484402, guid: 83df63e76ca9dc0459b5ef609afa4440, type: 3}
   projectilePrefab: {fileID: 6650961599813636626, guid: f2723027473426b4ea21d114505bbd31, type: 3}
-  muzzleFlash: {fileID: 0}
-  hitEffect: {fileID: 0}
+  muzzleFlash: {fileID: 3795609276067296776, guid: 8029c564ecc211145829e640f6339e11, type: 3}
+  hitEffect: {fileID: 3776657940725007942, guid: bc37fd9e59a436546b4f7f2840af0c96, type: 3}
+  misfireHitEffect: {fileID: 1689076858994417672, guid: 2f5db62a65620e043a424dd0a8fdffbc, type: 3}
   damage: 7
   rateOfFire: 0.1
   reloadTime: 2
+  adsTime: 0.2
   raycastRange: 100
   pelletCount: 1
   maxAmmo: 25
@@ -35,7 +37,7 @@ MonoBehaviour:
   recoilHorizontal: 0.5
   adsRecoilVerticalMultiplier: 0.4
   adsRecoilHorizontalMultiplier: 0.4
-  recoilRecoveryRate: 3
-  adsTime: 0.2
+  recoilForce: 0
+  allowVerticalRecoilForce: 0
   adsFOV: 40
   hipFOV: 60

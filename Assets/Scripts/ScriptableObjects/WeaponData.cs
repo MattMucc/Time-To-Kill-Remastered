@@ -20,6 +20,7 @@ public class WeaponData : ScriptableObject
     public GameObject projectilePrefab;
     public GameObject muzzleFlash;
     public GameObject hitEffect;
+    public GameObject misfireHitEffect;
 
     [Header("Stats")]
     public float damage = 10f;

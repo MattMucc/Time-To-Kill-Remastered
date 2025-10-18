@@ -43,10 +43,8 @@ public class CameraController : MonoBehaviour
 
     private void Look()
     {
-        float fov = Camera.main ? Camera.main.fieldOfView : 60f;
-        float fovScale = fov / 60f; // 60 = normal FOV baseline
-        float mouseX = lookInput.x * sensitivity * fovScale * Time.deltaTime;
-        float mouseY = lookInput.y * sensitivity * fovScale * Time.deltaTime;
+        float mouseX = lookInput.x * sensitivity * Time.deltaTime;
+        float mouseY = lookInput.y * sensitivity * Time.deltaTime;
 
         yaw += mouseX;
         pitch -= mouseY;

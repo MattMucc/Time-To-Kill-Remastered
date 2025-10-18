@@ -20,8 +20,9 @@ MonoBehaviour:
   model: {fileID: 5888128854894312687, guid: 0db251ee47a218c45a10979680ef96be, type: 3}
   weaponPickupPrefab: {fileID: 6073021170722640222, guid: e35dc821189102c4b8a83eb7309057a2, type: 3}
   projectilePrefab: {fileID: 8769201565513377806, guid: 727552b27f6e48043abfa0ca5a3459c8, type: 3}
-  muzzleFlash: {fileID: 0}
-  hitEffect: {fileID: 0}
+  muzzleFlash: {fileID: 3795609276067296776, guid: 8029c564ecc211145829e640f6339e11, type: 3}
+  hitEffect: {fileID: 3776657940725007942, guid: bc37fd9e59a436546b4f7f2840af0c96, type: 3}
+  misfireHitEffect: {fileID: 2350961685578315639, guid: 9cd253cef8501fe43b938a9e2649a891, type: 3}
   damage: 25
   rateOfFire: 1.5
   reloadTime: 3
