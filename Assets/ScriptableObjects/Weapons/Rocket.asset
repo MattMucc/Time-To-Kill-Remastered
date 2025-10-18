@@ -25,15 +25,18 @@ MonoBehaviour:
   damage: 25
   rateOfFire: 1.5
   reloadTime: 3
+  adsTime: 1
   raycastRange: 100
+  pelletCount: 1
+  maxAmmo: 5
+  currentAmmo: 2
   hipfireSpread: 2
   adsSpread: 0.5
   recoilVertical: 5
   recoilHorizontal: 1
-  recoilRecoveryRate: 2
-  adsTime: 1
+  adsRecoilVerticalMultiplier: 0.6
+  adsRecoilHorizontalMultiplier: 0.6
+  recoilForce: 50
+  allowVerticalRecoilForce: 1
   adsFOV: 40
   hipFOV: 60
-  pelletCount: 1
-  maxAmmo: 5
-  currentAmmo: 3

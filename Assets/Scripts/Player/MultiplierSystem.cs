@@ -8,18 +8,18 @@ public class MultiplierSystem : MonoBehaviour
     public float baseDecayDelay = 3f;
     public float baseDecayRate = 0.25f;
 
-    [Tooltip("If true, the multiplier drops by 1 each time the meter is fully drained instead of resetting to 1.")]
+    [Tooltip("If true, the multiplier drops by 1 each time the meter is fully drained instead of resetting to 1 (easy mode pretty much)")]
     public bool gradualDecay = false;
 
-    [Tooltip("If true, decay timing and rate will scale based on your current multiplier level.")]
+    [Tooltip("If true, decay delay and rate will scale based on your current multiplier level (hard mode pretty much).")]
     public bool adaptiveDecay = false;
 
     [Header("Meter Gains")]
-    public float fillPerKill = 0.25f;
-    public float fillPerDamage = 0.01f;
-    public float fillPerHeadshot = 0.05f;
-    public float fillPerSlideHit = 0.1f;
-    public float fillPerGrappleHit = 0.1f;
+    [Range(0f, 1f)] public float fillPerKill = 0.25f;
+    [Range(0f, 1f)] public float fillPerDamage = 0.01f;
+    [Range(0f, 1f)] public float fillPerHeadshot = 0.05f;
+    [Range(0f, 1f)] public float fillPerSlideHit = 0.1f;
+    [Range(0f, 1f)] public float fillPerGrappleHit = 0.1f;
 
     [Header("Scaling Values (Adaptive Mode)")]
     [Tooltip("Decay delay multiplier applied per current multiplier level (higher multiplier = faster decay).")]
@@ -28,14 +28,22 @@ public class MultiplierSystem : MonoBehaviour
     [Tooltip("Decay rate multiplier applied per current multiplier level.)")]
     public AnimationCurve decayRateCurve = AnimationCurve.Linear(1, 1f, 3, 0.5f);
 
+    [Tooltip("Dampens the effect of the multiplier affecting speed (higher = more affected by multiplier)")]
+    [Range(0f, 1f)] public float speedDampenerMultiplier = 0.25f;
+
+    [Tooltip("Stops reload time from exceeding past x% when affected by the multiplier (e.g. 0.5 = 50% reload time)")]
+    [Range(0f, 1f)] public float reloadTimeLimiter = 0.5f;
+
     [Header("Current Values")]
     public float meter = 0f;
     public int multiplier = 1;
     private float decayTimer = 0f;
+    private bool isDecayPaused = false;
 
     [Header("Events")]
     public UnityEvent<int> OnMultiplierChanged;
     public UnityEvent<float> OnMeterChanged;
+    public UnityEvent<bool> OnDecayPauseChanged;
 
     private void Start()
     {
@@ -48,8 +56,24 @@ public class MultiplierSystem : MonoBehaviour
         Decay();
     }
 
+    public void PauseDecay()
+    {
+        isDecayPaused = true;
+        OnDecayPauseChanged?.Invoke(isDecayPaused);
+    }
+
+    public void ResumeDecay()
+    {
+        isDecayPaused = false;
+        decayTimer = GetCurrentDecayDelay();
+        OnDecayPauseChanged?.Invoke(isDecayPaused);
+    }
+
     private void Decay()
     {
+        if (isDecayPaused)
+            return;
+
         if (decayTimer > 0f)
         {
             decayTimer -= Time.deltaTime;
@@ -142,11 +166,11 @@ public class MultiplierSystem : MonoBehaviour
         return baseDecayDelay * decayDelayCurve.Evaluate(multiplier);
     }
 
-    public float GetDamageMultiplier() => multiplier;
-    public float GetSpeedMultiplier() => 1f + 0.25f * (multiplier - 1);
+    public float GetDamageMultiplier() => 1f + 0.25f * (multiplier - 1); // 1f + 0.25 * (2 - 1) = 1.25 -> damage (if 7) * 1.25 = 8.75
+    public float GetSpeedMultiplier() => 1f + speedDampenerMultiplier * (multiplier - 1); // 1f + 0.25 * (2 - 1) = 1.25 -> movement speed (if 8) * 1.25 = 10
     public float GetReloadSpeedMultiplier()
     {
         float baseMultiplier = 1f / GetSpeedMultiplier();
-        return Mathf.Max(baseMultiplier, 0.5f); // Never exceeds 2x base speed (50% of base reload speed)
+        return Mathf.Max(baseMultiplier, reloadTimeLimiter); // Never exceeds x% of base reload speed when affected by the multiplier
     }
 }

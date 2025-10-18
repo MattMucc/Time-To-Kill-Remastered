@@ -278,6 +278,7 @@ MonoBehaviour:
   jumpHeight: 2
   maxJumps: 2
   jumpCount: 0
+  externalForceDecayRate: 5
   isGrounded: 0
   overrideSpeed: 0
   groundCheckOrigin: {fileID: 6727226471081343077}
@@ -365,12 +366,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 844d0c91fd3274345989d200d3a57d9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  adsSpeedLimitMultiplier: 1.1
-  restrictADSAtHighSpeed: 1
-  kickbackDistance: 0.05
-  kickbackRotation: 5
-  kickbackReturnSpeed: 2
+  restrictADSWhenSliding: 1
+  kickbackDistance: 0.2
+  kickbackRotation: 10
+  kickbackReturnSpeed: 30
   enableWeaponKickback: 1
+  weaponRoot: {fileID: 7712425079408962426}
   gunTip: {fileID: 6865902083759442570}
   weaponAnimator: {fileID: 0}
   OnReloadStart:
@@ -470,12 +471,17 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  speedDampenerMultiplier: 0.25
+  reloadTimeLimiter: 0.5
   meter: 0
   multiplier: 1
   OnMultiplierChanged:
     m_PersistentCalls:
       m_Calls: []
   OnMeterChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDecayPauseChanged:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &6638984455651510659
@@ -502,7 +508,7 @@ MonoBehaviour:
   slideAttackDamage: 10
   enableContinuousDamage: 0
   continuousDamageInterval: 0.5
-  playerTransform: {fileID: 0}
+  playerTransform: {fileID: 8714590750173940197}
   slideCollider: {fileID: 3603200276705451684}
 --- !u!114 &795590896702839860
 MonoBehaviour:
@@ -664,10 +670,6 @@ MonoBehaviour:
   scaleBurstWithSpeed: 1
   adsBlendSpeed: 10
   isADS: 0
-  recoilRecoverySpeed: 8
-  enableCameraRecoil: 1
-  currentRecoilPitch: 0
-  currentRecoilYaw: 0
   playerTransform: {fileID: 8714590750173940197}
   cameraRoot: {fileID: 63936895865666064}
 --- !u!1 &5340015761817146813

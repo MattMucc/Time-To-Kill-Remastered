@@ -25,6 +25,7 @@ public class WeaponData : ScriptableObject
     public float damage = 10f;
     public float rateOfFire = 0.2f;
     public float reloadTime = 1f;
+    public float adsTime = 0.2f;
     public float raycastRange = 100f;
 
     [Tooltip("Number of rays to shoot for shotgun-style weapons (default = 1).")]
@@ -48,9 +49,11 @@ public class WeaponData : ScriptableObject
     [Tooltip("A multiplier applied to the recoil while in ADS (lower = less recoil in ADS)")]
     public float adsRecoilHorizontalMultiplier = 0.6f;
 
-    [Tooltip("How quickly the camera recenters after recoil (higher = faster).")]
-    public float recoilRecoveryRate = 5f;
-    public float adsTime = 0.2f;
+    [Tooltip("Force applied to the player when firing this weapon (0 = no force applied).")]
+    public float recoilForce = 0f;
+
+    [Tooltip("If true, recoil force will also apply upward force, useful for rocket jumping.")]
+    public bool allowVerticalRecoilForce = false;
 
     [Header("FOV")]
     public float adsFOV = 40f;

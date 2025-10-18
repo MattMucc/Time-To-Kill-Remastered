@@ -5,8 +5,7 @@ using UnityEngine.Events;
 public class WeaponHandler : MonoBehaviour
 {
     [Header("ADS Settings")]
-    public float adsSpeedLimitMultiplier = 1.1f; // Greater than base move speed
-    public bool restrictADSAtHighSpeed = false;
+    public bool restrictADSWhenSliding = true;
     private float lastADSFOV = -1f;
     private bool lastAimState = false;
 
@@ -29,6 +28,7 @@ public class WeaponHandler : MonoBehaviour
     private float reloadTimer = 0f;
 
     [Header("References")]
+    [SerializeField] private Transform weaponRoot;
     [SerializeField] private Transform gunTip;
     [SerializeField] private Animator weaponAnimator;
     private Camera mainCamera;
@@ -36,6 +36,7 @@ public class WeaponHandler : MonoBehaviour
     private CameraController camController;
     private PlayerInventory inventory;
     private MultiplierSystem multiplier;
+    private SlideAttack slide;
     private CameraEffects camEffects;
 
     [Header("Events")]
@@ -55,8 +56,8 @@ public class WeaponHandler : MonoBehaviour
 
         camController = mainCamera.GetComponent<CameraController>();
         camEffects = mainCamera.GetComponent<CameraEffects>();
-        originalWeaponPos = transform.localPosition;
-        originalWeaponRot = transform.localRotation;
+        originalWeaponPos = weaponRoot.localPosition;
+        originalWeaponRot = weaponRoot.localRotation;
 
         UIManager.instance.RegisterWeaponHandler(this);
         inventory.OnWeaponSwitched.AddListener(OnWeaponSwitched);
@@ -65,6 +66,7 @@ public class WeaponHandler : MonoBehaviour
 
         movement = GetComponent<PlayerController>();
         multiplier = GetComponent<MultiplierSystem>();
+        slide = GetComponent<SlideAttack>();
     }
 
     private void Update()
@@ -85,12 +87,8 @@ public class WeaponHandler : MonoBehaviour
             return;
 
         bool wantAim = InputManager.instance.AimHeld && !isReloading;
-        if (restrictADSAtHighSpeed)
-        {
-            float baseSpeed = movement.moveSpeed * multiplier.GetSpeedMultiplier();
-            if (baseSpeed > movement.moveSpeed * adsSpeedLimitMultiplier)
-                isAiming = false;
-        }
+        if (restrictADSWhenSliding && slide && slide.isSliding)
+            wantAim = false;
 
         float target = wantAim ? currentWeapon.adsFOV : currentWeapon.hipFOV;
         if (wantAim != lastAimState || !Mathf.Approximately(target, lastADSFOV))
@@ -167,8 +165,8 @@ public class WeaponHandler : MonoBehaviour
         if (!enableWeaponKickback)
             return;
 
-        transform.localPosition = Vector3.Lerp(transform.localPosition, originalWeaponPos + kickOffset, kickbackReturnSpeed * Time.deltaTime);
-        transform.localRotation = Quaternion.Slerp(transform.localRotation, originalWeaponRot * kickRot, kickbackReturnSpeed * Time.deltaTime);
+        weaponRoot.localPosition = Vector3.Lerp(weaponRoot.localPosition, originalWeaponPos + kickOffset, kickbackReturnSpeed * Time.deltaTime);
+        weaponRoot.localRotation = Quaternion.Slerp(weaponRoot.localRotation, originalWeaponRot * kickRot, kickbackReturnSpeed * Time.deltaTime);
 
         kickOffset = Vector3.Lerp(kickOffset, Vector3.zero, kickbackReturnSpeed * Time.deltaTime);
         kickRot = Quaternion.Slerp(kickRot, Quaternion.identity, kickbackReturnSpeed * Time.deltaTime);
@@ -223,6 +221,22 @@ public class WeaponHandler : MonoBehaviour
         if (currentWeapon.muzzleFlash)
             Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
 
+        // Apply recoil force to the player
+        if (movement && currentWeapon.recoilForce > 0f)
+        {
+            Vector3 recoilDirection = -mainCamera.transform.forward;
+            if (currentWeapon.allowVerticalRecoilForce)
+            {
+                float upwardFactor = Mathf.Clamp01(Vector3.Dot(mainCamera.transform.forward, Vector3.down)); // 1 when looking straight down, 0 when horizontal
+                recoilDirection += Vector3.up * upwardFactor; // Adds upward lift for rocket jumping
+            }
+
+            // Scales with multiplier
+            float finalForce = currentWeapon.recoilForce * multiplier.GetSpeedMultiplier();
+            recoilDirection.Normalize();
+            movement.ApplyExternalForce(recoilDirection * finalForce);
+        }
+
         // Apply camera recoil
         if (camController)
         {
@@ -232,15 +246,16 @@ public class WeaponHandler : MonoBehaviour
 
             // Random variation
             float randPitch = Random.Range(recoilVert * 0.8f, recoilVert); // Never go negative; we want the recoil to always climb upwards
-            float randYaw = Random.Range(-recoilHoriz, recoilHoriz);
+            float randYaw = Random.Range(recoilHoriz * 0.4f, recoilHoriz);
             camController.AddRecoil(randPitch, randYaw);
         }
 
         // Apply weapon visual kickback
         if (enableWeaponKickback)
         {
-            kickOffset = -transform.forward * kickbackDistance;
-            kickRot = Quaternion.Euler(-kickbackRotation, 0f, 0f);
+            float kickScale = Mathf.Clamp(currentWeapon.recoilForce * 0.01f, 1f, 3f);
+            kickOffset = Vector3.back * kickbackDistance * kickScale;
+            kickRot = Quaternion.Euler(-kickbackRotation * kickScale, 0f, 0f); // Upward tilt
         }
     }
 

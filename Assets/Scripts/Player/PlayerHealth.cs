@@ -14,7 +14,9 @@ public class PlayerHealth : MonoBehaviour
     public float currentShield = 0f;
     public float shieldRegenRate = 10f;
     public float shieldRegenDelay = 3f;
-    public bool enableShieldGating = false; // If true, one big hit won't damage any health with any remaining damage after the shield breaks
+
+    [Tooltip("If true, one big hit won't damage any health if there is any remaining damage after the shield breaks (easy mode pretty much).")]
+    public bool enableShieldGating = false;
 
     [Header("Events")]
     public UnityEvent OnPlayerDeath;

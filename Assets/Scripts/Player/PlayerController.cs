@@ -8,6 +8,9 @@ public class PlayerController : MonoBehaviour
     public float jumpHeight = 2f;
     public int maxJumps = 2;
     public int jumpCount = 0;
+
+    [Tooltip("How fast the external force fades out (higher = faster, 5 feels snappier, 2 feels floatier).")]
+    public float externalForceDecayRate = 5f;
     public bool isGrounded = true;
     public bool overrideSpeed = false;
 
@@ -26,6 +29,8 @@ public class PlayerController : MonoBehaviour
     private CharacterController controller;
     private Vector3 moveInput;
     private Vector3 velocity;
+    private Vector3 pendingForce = Vector3.zero;
+    private Vector3 externalForce = Vector3.zero;
     private bool isSprinting;
 
     private void Start()
@@ -91,6 +96,25 @@ public class PlayerController : MonoBehaviour
     private void ApplyGravity()
     {
         velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+
+        // Add any pending forces 
+        if (pendingForce.sqrMagnitude > 0.01f)
+        {
+            externalForce += pendingForce;
+            pendingForce = Vector3.zero;
+        }
+
+        // Apply gravity and external forces
+        Vector3 totalVelocity = velocity + externalForce;
+        controller.Move(totalVelocity * Time.deltaTime);
+
+        // Gradually decay external force
+        externalForce = Vector3.Lerp(externalForce, Vector3.zero, externalForceDecayRate * Time.deltaTime);
+    }
+
+    /// <summary> Applies an external force impulse to the player, used for rocket jumping or explosions. </summary>
+    public void ApplyExternalForce(Vector3 force)
+    {
+        externalForce += force;
     }
 }
