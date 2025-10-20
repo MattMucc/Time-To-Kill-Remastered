@@ -3,7 +3,8 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 8f;
+    [SerializeField] private Vector3 frameVelocity;
+    public float baseSpeed = 8f;
     public float gravity = -9.81f;
     public float jumpHeight = 2f;
     public int maxJumps = 2;
@@ -29,17 +30,22 @@ public class PlayerController : MonoBehaviour
     public Transform cameraTransform;
 
     private InputManager input;
+    private MultiplierSystem multiplier;
     private CharacterController controller;
     private Vector3 moveInput;
-    private Vector3 velocity;
+    private Vector3 lastPosition;
     private Vector3 pendingForce = Vector3.zero;
     private Vector3 externalForce = Vector3.zero;
+    private float originalExternalForceDecayRate;
+    private float verticalVelocity;
     private bool isSprinting;
 
     private void Start()
     {
         input = InputManager.instance;
+        multiplier = GetComponent<MultiplierSystem>();
         controller = GetComponent<CharacterController>();
+        originalExternalForceDecayRate = externalForceDecayRate;
         SpawnPlayer();
     }
 
@@ -52,6 +58,7 @@ public class PlayerController : MonoBehaviour
         Move();
         Jump();
         ApplyGravity();
+        UpdateFrameVelocity();
     }
 
     private void SpawnPlayer()
@@ -69,8 +76,8 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics.CheckSphere(origin + Vector3.down * groundCheckDistance, groundCheckRadius, groundLayer, QueryTriggerInteraction.Ignore);
 
         // Prevents floating frames when falling at a fast speed
-        if (isGrounded && velocity.y < 0)
-            velocity.y = -2f;
+        if (isGrounded && verticalVelocity < 0)
+            verticalVelocity = -2f;
 
         // Prevents ground check from not counting first jump
         if (justJumped)
@@ -92,7 +99,7 @@ public class PlayerController : MonoBehaviour
         if (overrideSpeed)
             return;
 
-        float speed = moveSpeed * GetComponent<MultiplierSystem>().GetSpeedMultiplier();
+        float speed = multiplier ? baseSpeed * multiplier.GetSpeedMultiplier() : baseSpeed;
         moveInput = input.Move;
         Vector3 move = cameraTransform.forward * moveInput.y + cameraTransform.right * moveInput.x;
         move.y = 0f;
@@ -103,7 +110,7 @@ public class PlayerController : MonoBehaviour
     {
         if (input.JumpPressed && jumpCount < maxJumps)
         {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             jumpCount++;
             justJumped = true;
             jumpGraceTimer = jumpGraceDuration;
@@ -112,7 +119,7 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyGravity()
     {
-        velocity.y += gravity * Time.deltaTime;
+        verticalVelocity += gravity * Time.deltaTime;
 
         // Add any pending forces 
         if (pendingForce.sqrMagnitude > 0.01f)
@@ -122,11 +129,29 @@ public class PlayerController : MonoBehaviour
         }
 
         // Apply gravity and external forces
-        Vector3 totalVelocity = velocity + externalForce;
+        Vector3 totalVelocity = externalForce;
+        totalVelocity.y += verticalVelocity;
         controller.Move(totalVelocity * Time.deltaTime);
 
         // Gradually decay external force
         externalForce = Vector3.Lerp(externalForce, Vector3.zero, externalForceDecayRate * Time.deltaTime);
+    }
+
+    private void UpdateFrameVelocity()
+    {
+        Vector3 displacement = transform.position - lastPosition;
+        frameVelocity = displacement / Time.deltaTime;
+        lastPosition = transform.position;
+    }
+
+    public void SetExternalDecayRate(float amount)
+    {
+        externalForceDecayRate = amount;
+    }
+
+    public void ResetExternalDecayRate()
+    {
+        externalForceDecayRate = originalExternalForceDecayRate;
     }
 
     /// <summary> Applies an external force impulse to the player, used for rocket jumping or explosions. </summary>
@@ -134,4 +159,11 @@ public class PlayerController : MonoBehaviour
     {
         externalForce += force;
     }
+
+    /// <summary> Returns baseSpeed * multiplier.GetSpeedMultiplier(). </summary>
+    public float Speed { get { return multiplier ? baseSpeed * multiplier.GetSpeedMultiplier() : baseSpeed; } }
+    public float CurrentSpeedMagnitude => frameVelocity.magnitude;
+    public Vector3 CurrentVelocity => frameVelocity;
+    public Vector3 HorizontalVelocity => new Vector3(frameVelocity.x, 0f, frameVelocity.z);
+    public float VerticalVelocity { get { return verticalVelocity; } set { verticalVelocity = value; } }
 }

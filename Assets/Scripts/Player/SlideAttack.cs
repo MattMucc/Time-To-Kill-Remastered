@@ -72,7 +72,7 @@ public class SlideAttack : MonoBehaviour
         // If not sliding, gradually decay momentum
         if (!isSliding)
         {
-            float targetSpeed = movement.moveSpeed * multiplier.GetSpeedMultiplier();
+            float targetSpeed = movement.Speed;
 
             // When near the target speed, stop the movement force
             if (currentSpeed <= targetSpeed + 0.05f)
@@ -104,12 +104,12 @@ public class SlideAttack : MonoBehaviour
         else
         {
             // Slightly re-trigger FOV burst when slidinmg downhill or movement spikes mid-slide
-            if (currentSpeed > movement.moveSpeed * 1.1f)
+            if (currentSpeed > movement.Speed * 1.1f)
             {
                 if (cameraEffects)
                 {
-                    float normalizedSpeed = Mathf.InverseLerp(movement.moveSpeed, slideSpeedBoost, currentSpeed);
-                    cameraEffects.TriggerFOVBurst(normalizedSpeed * 0.5f); // Smaller continuous boost
+                    float normalizedSpeed = Mathf.InverseLerp(movement.Speed, slideSpeedBoost, currentSpeed);
+                    //cameraEffects.TriggerFOVBurst(normalizedSpeed * 0.5f); // Smaller continuous boost
                 }
             }
         }
@@ -139,8 +139,8 @@ public class SlideAttack : MonoBehaviour
         slideCollider.enabled = true;
         if (cameraEffects)
         {
-            float normalizedSpeed = Mathf.InverseLerp(movement.moveSpeed, slideSpeedBoost, currentSpeed);
-            cameraEffects.TriggerFOVBurst(normalizedSpeed);
+            float normalizedSpeed = Mathf.InverseLerp(movement.Speed, slideSpeedBoost, currentSpeed);
+            //cameraEffects.TriggerFOVBurst(normalizedSpeed);
 
         }
     }

@@ -37,7 +37,7 @@ MonoBehaviour:
   recoilHorizontal: 0.5
   adsRecoilVerticalMultiplier: 0.6
   adsRecoilHorizontalMultiplier: 0.6
-  recoilForce: 1.5
+  recoilForce: 0
   allowVerticalRecoilForce: 0
   adsFOV: 40
   hipFOV: 60

@@ -20,6 +20,7 @@ public class UIManager : MonoBehaviour
 
     [Header("HUD References")]
     [SerializeField] private InteractPrompt interactPrompt;
+    [SerializeField] private Image grappleLockOn;
 
     [Header("Center")]
     [SerializeField] private Image reloadCircle;
@@ -332,6 +333,22 @@ public class UIManager : MonoBehaviour
             return;
 
         slideCooldownImage.fillAmount = Mathf.Clamp01(progress);
+    }
+
+    public void UpdateGrappleCooldown(float progress)
+    {
+        if (!grappleCooldownImage)
+            return;
+
+        grappleCooldownImage.fillAmount = Mathf.Clamp01(progress);
+    }
+
+    public void ToggleGrappleLockOn(bool value)
+    {
+        if (!grappleLockOn)
+            return;
+
+        grappleLockOn.enabled = value;
     }
 
     private void OnControlSchemeChanged(string scheme)

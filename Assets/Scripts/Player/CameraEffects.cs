@@ -53,7 +53,45 @@ public class CameraEffects : MonoBehaviour
     private void LateUpdate()
     {
         UpdateFOV();
+        UpdateSpeedFOV();
     }
+
+    /*private void UpdateFOV()
+    {
+        if (!movement)
+            return;
+
+        // ADS Blend
+        adsWeight = Mathf.SmoothDamp(adsWeight, adsTargetWeight, ref adsWeightVel, 1f / adsBlendSpeed);
+        float baseFOV = Mathf.Lerp(normalFOV, adsFOVTarget, adsWeight);
+
+        // Speed-Based
+        float baseSpeed = movement.moveSpeed * multiplier.GetSpeedMultiplier();
+        float currentSpeed = movement.CurrentSpeedMagnitude;
+        float speedBoost = 0f;
+        if (currentSpeed > baseSpeed)
+        {
+            float speedRatio = Mathf.InverseLerp(baseSpeed, baseSpeed * 3f, currentSpeed);
+            speedBoost = maxBurstIncrease * speedRatio;
+        }
+
+        // Burst Intensity
+        float speedFactor = 1f;
+        if (scaleBurstWithSpeed)
+            speedFactor = Mathf.Clamp01(GetSpeed() / speedNormalizeMax);
+
+        float burstAdd = maxBurstIncrease * burstIntensity * speedFactor;
+
+        // Final FOV Target
+        float targetFOV = baseFOV + speedBoost + burstAdd;
+
+        // Lerp Smoothly
+        currentFOV = Mathf.Lerp(currentFOV, targetFOV, fovChangeSpeed * Time.deltaTime);
+        cam.fieldOfView = currentFOV;
+
+        // Decay Burst
+        burstIntensity = Mathf.MoveTowards(burstIntensity, 0f, burstFadeSpeed * Time.deltaTime);
+    }*/
 
     private void UpdateFOV()
     {
@@ -61,7 +99,7 @@ public class CameraEffects : MonoBehaviour
         adsWeight = Mathf.SmoothDamp(adsWeight, adsTargetWeight, ref adsWeightVel, 1f / adsBlendSpeed);
         float speedFactor = 1f;
         if (scaleBurstWithSpeed)
-            speedFactor = Mathf.Clamp01(GetSpeed() / speedNormalizeMax);
+            speedFactor = Mathf.Clamp01(movement.Speed / speedNormalizeMax);
 
         // Blend between ADS FOV and normal FOV
         float burstAdd = maxBurstIncrease * burstIntensity * speedFactor;
@@ -75,7 +113,26 @@ public class CameraEffects : MonoBehaviour
         burstIntensity = Mathf.MoveTowards(burstIntensity, 0f, burstFadeSpeed * Time.deltaTime);
     }
 
-    /// <summary> Triggers a temporary FOV burst (e.g. slide, dash, boost) </summary>
+    public void UpdateSpeedFOV()
+    {
+        if (!movement)
+            return;
+
+        float baseSpeed = movement.Speed;
+        float currentSpeed = movement.CurrentSpeedMagnitude;
+        if (currentSpeed > baseSpeed)
+        {
+            float speedRatio = Mathf.InverseLerp(baseSpeed, baseSpeed * 3f, currentSpeed); // Tweak 3f for max effect
+            float targetFOV = normalFOV + maxBurstIncrease * speedRatio;
+            currentFOV = Mathf.Lerp(currentFOV, targetFOV, fovChangeSpeed * Time.deltaTime);
+        }
+        else
+            currentFOV = Mathf.Lerp(currentFOV, normalFOV, fovChangeSpeed * Time.deltaTime);
+
+        cam.fieldOfView = currentFOV;
+    }
+
+    /// <summary> Triggers a temporary FOV burst. </summary>
     public void TriggerFOVBurst(float intensity = 1f)
     {
         burstIntensity = Mathf.Clamp01(intensity);
@@ -92,7 +149,7 @@ public class CameraEffects : MonoBehaviour
         adsTargetWeight = aiming ? 1f : 0f;
     }
 
-    private float GetSpeed()
+    /*private float GetSpeed()
     {
         if (!movement || !multiplier || !slide)
             return 0f;
@@ -101,5 +158,5 @@ public class CameraEffects : MonoBehaviour
             return slide.slideSpeedBoost * multiplier.GetSpeedMultiplier();
 
         return movement.moveSpeed * multiplier.GetSpeedMultiplier();
-    }
+    }*/
 }

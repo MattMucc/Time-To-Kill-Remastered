@@ -230,7 +230,7 @@ public class WeaponHandler : MonoBehaviour
         // Spawn muzzle flash
         if (currentWeapon.muzzleFlash)
         {
-            GameObject muzzleFlash = Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation);
+            GameObject muzzleFlash = Instantiate(currentWeapon.muzzleFlash, gunTip.position, gunTip.rotation, gunTip);
             Destroy(muzzleFlash, 1f);
         }
 
