@@ -29,6 +29,9 @@ public class WeaponData : ScriptableObject
     public float adsTime = 0.2f;
     public float raycastRange = 100f;
 
+    [Tooltip("For more forgiving shots.")]
+    public float sphereCastRadius = 0.15f;
+
     [Tooltip("Number of rays to shoot for shotgun-style weapons (default = 1).")]
     public int pelletCount = 1;
 

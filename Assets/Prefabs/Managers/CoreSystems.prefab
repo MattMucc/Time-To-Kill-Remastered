@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2836250119233506756}
   - component: {fileID: 929233457969391753}
   - component: {fileID: 7809086995347757922}
+  - component: {fileID: 4354844212358398856}
   m_Layer: 0
   m_Name: CoreSystems
   m_TagString: Untagged
@@ -95,6 +96,24 @@ MonoBehaviour:
   uiGroup: {fileID: 6511882457445414133, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
   sfxGroup: {fileID: -5618599687239861475, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
   musicGroup: {fileID: -7697465087078640370, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
+--- !u!114 &4354844212358398856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2926435633354665858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59d892ade71d5fb4787aea467fbe5f78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showEnemyHitboxes: 0
+  showEnemyRanges: 0
+  showPlayerCasts: 0
+  detectionRangeColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  attackRangeColor: {r: 1, g: 0, b: 0, a: 1}
+  playerCastColor: {r: 0, g: 1, b: 1, a: 1}
 --- !u!1 &3797185617265755532
 GameObject:
   m_ObjectHideFlags: 0

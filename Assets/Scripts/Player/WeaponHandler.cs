@@ -202,15 +202,33 @@ public class WeaponHandler : MonoBehaviour
             if (currentWeapon.useProjectile && currentWeapon.projectilePrefab)
             {
                 GameObject projectile = Instantiate(currentWeapon.projectilePrefab, gunTip.position, Quaternion.LookRotation(spreadDir));
-                projectile.GetComponent<Projectile>().damage = currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier();
+                projectile.GetComponent<Projectile>().damage = Damage;
             }
             else if (!currentWeapon.useProjectile)
             {
-                if (Physics.Raycast(mainCamera.transform.position, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
+                if (Physics.SphereCast(mainCamera.transform.position, currentWeapon.sphereCastRadius, spreadDir, out RaycastHit hitInfo, currentWeapon.raycastRange))
                 {
-                    if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
+                    if (DebugManager.instance)
+                        DebugManager.instance.RegisterSphereCasts(mainCamera.transform.position, spreadDir, currentWeapon.raycastRange, currentWeapon.sphereCastRadius);
+
+                    if (hitInfo.collider.TryGetComponent(out EnemyHurtbox hurtbox))
                     {
-                        enemyHealth.TakeDamage(currentWeapon.damage * GetComponent<MultiplierSystem>().GetDamageMultiplier());
+                        hurtbox.TakeDamage(Damage, out EnemyHurtbox.HurtboxType hitType);
+                        if (hitType == EnemyHurtbox.HurtboxType.Head)
+                            multiplier.AddHeadshot();
+                        else if (hitType == EnemyHurtbox.HurtboxType.Body)
+                            multiplier.AddDamage(Damage);
+
+                        if (currentWeapon.hitEffect)
+                        {
+                            GameObject hitEffect = Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                            Destroy(hitEffect, 1f);
+                        }
+                    }
+                    else if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
+                    {
+                        enemyHealth.TakeDamage(Damage);
+                        multiplier.AddDamage(Damage);
                         if (currentWeapon.hitEffect)
                         {
                             GameObject hitEffect = Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
@@ -356,4 +374,6 @@ public class WeaponHandler : MonoBehaviour
         nextFireTime = 0f;
         OnReloadComplete?.Invoke(); // Hides reload UI and updates weapon UI
     }
+
+    public float Damage => currentWeapon && multiplier ? currentWeapon.damage * multiplier.GetDamageMultiplier() : 0f;
 }

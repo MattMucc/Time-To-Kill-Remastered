@@ -30,6 +30,7 @@ public class InputManager : MonoBehaviour
 
     public bool InteractPressed { get; private set; }
     public bool PausePressed { get; private set; }
+    public bool DebugPressed { get; private set; }
 
     private void Awake()
     {
@@ -63,6 +64,7 @@ public class InputManager : MonoBehaviour
 
         InteractPressed = controls.Player.Interact.WasPerformedThisFrame();
         PausePressed = controls.Player.Pause.WasPerformedThisFrame();
+        DebugPressed = controls.Player.Debug.WasPerformedThisFrame();
 
         DetectCurrentScheme();
     }
