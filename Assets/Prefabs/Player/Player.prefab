@@ -115,6 +115,7 @@ GameObject:
   - component: {fileID: 5139324440003286430}
   - component: {fileID: 6638984455651510659}
   - component: {fileID: 3646265836642009060}
+  - component: {fileID: 9046691721491874320}
   - component: {fileID: 3307805221344552328}
   - component: {fileID: 795590896702839860}
   m_Layer: 6
@@ -275,7 +276,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aad84caaf30eeca42a0419a5e6274cec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 8
+  frameVelocity: {x: 0, y: 0, z: 0}
+  baseSpeed: 8
   gravity: -30
   jumpHeight: 2
   maxJumps: 2
@@ -284,6 +286,7 @@ MonoBehaviour:
   externalForceDecayRate: 2
   isGrounded: 0
   overrideSpeed: 0
+  overrideJump: 0
   groundCheckOrigin: {fileID: 6727226471081343077}
   groundCheckRadius: 0.1
   groundCheckDistance: 0.01
@@ -527,6 +530,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxGrappleDistance: 100
   pullSpeed: 40
+  speedBoost: 1.2
   stopDistance: 3
   grappleCooldown: 3
   aimAssistRange: 2
@@ -541,6 +545,34 @@ MonoBehaviour:
   grappleLayer:
     serializedVersion: 2
     m_Bits: 9
+--- !u!114 &9046691721491874320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2700178005584318944}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: def7653a785fb8246a170a8ab978802f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  wallRunSpeed: 8
+  wallRunGravityMultiplier: 0.1
+  idleGravityRamp: 2
+  idleGravityRampTime: 2
+  cameraTiltAngle: 15
+  cameraTiltSpeed: 6
+  wallDetectionDistance: 1
+  wallDetectionRadius: 0.5
+  minJumpOffForce: 10
+  jumpUpFactor: 0.75
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 1
+  requireJumpToStart: 0
+  isWallRunning: 0
+  isWallRight: 0
 --- !u!120 &3307805221344552328
 LineRenderer:
   serializedVersion: 2
@@ -785,9 +817,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c068b39a348cfa408105c2af736ba83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sensitivity: 200
+  sensitivity: 0.1
+  wallRunRotationLimit: 89
   playerTransform: {fileID: 8714590750173940197}
   cameraRoot: {fileID: 63936895865666064}
+  cameraPivot: {fileID: 0}
 --- !u!114 &3422034225594055173
 MonoBehaviour:
   m_ObjectHideFlags: 0

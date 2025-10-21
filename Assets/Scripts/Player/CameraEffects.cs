@@ -148,15 +148,4 @@ public class CameraEffects : MonoBehaviour
         adsFOVTarget = targetFOV;
         adsTargetWeight = aiming ? 1f : 0f;
     }
-
-    /*private float GetSpeed()
-    {
-        if (!movement || !multiplier || !slide)
-            return 0f;
-
-        if (slide.isSliding)
-            return slide.slideSpeedBoost * multiplier.GetSpeedMultiplier();
-
-        return movement.moveSpeed * multiplier.GetSpeedMultiplier();
-    }*/
 }

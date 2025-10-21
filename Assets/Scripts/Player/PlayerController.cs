@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
     public float externalForceDecayRate = 5f;
     public bool isGrounded = true;
     public bool overrideSpeed = false;
+    public bool overrideJump = false;
     private bool justJumped = false;
     private float jumpGraceTimer = 0f;
 
@@ -31,6 +32,7 @@ public class PlayerController : MonoBehaviour
 
     private InputManager input;
     private MultiplierSystem multiplier;
+    private WallRun wallRun;
     private CharacterController controller;
     private Vector3 moveInput;
     private Vector3 lastPosition;
@@ -44,6 +46,7 @@ public class PlayerController : MonoBehaviour
     {
         input = InputManager.instance;
         multiplier = GetComponent<MultiplierSystem>();
+        wallRun = GetComponent<WallRun>();
         controller = GetComponent<CharacterController>();
         originalExternalForceDecayRate = externalForceDecayRate;
         SpawnPlayer();
@@ -108,6 +111,15 @@ public class PlayerController : MonoBehaviour
 
     private void Jump()
     {
+        if (wallRun && wallRun.IsNearWall && InputManager.instance.JumpPressed && !wallRun.isWallRunning)
+        {
+            wallRun.StartWallRunFromController();
+            return;
+        }
+
+        if (overrideJump)
+            return;
+
         if (input.JumpPressed && jumpCount < maxJumps)
         {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -119,6 +131,9 @@ public class PlayerController : MonoBehaviour
 
     private void ApplyGravity()
     {
+        if (wallRun && wallRun.isWallRunning)
+            return;
+
         verticalVelocity += gravity * Time.deltaTime;
 
         // Add any pending forces 
