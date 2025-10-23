@@ -120,7 +120,10 @@ public class Grapple : MonoBehaviour
             camFX.TriggerFOVBurst(0.5f);*/
 
         if (multiplier && grappleTarget)
+        {
+            HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Normal);
             multiplier.AddGrappleHit();
+        }
 
         // Optional: Add small burst force for initial feel
         Vector3 direction = (grapplePoint - transform.position).normalized;

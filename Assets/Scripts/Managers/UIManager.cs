@@ -18,11 +18,11 @@ public class UIManager : MonoBehaviour
     public List<Menu> menus = new List<Menu>();
     private Dictionary<string, GameObject> menuLookup;
 
-    [Header("HUD References")]
+    [Header("Prompt References")]
     [SerializeField] private InteractPrompt interactPrompt;
     [SerializeField] private Image grappleLockOn;
 
-    [Header("Center")]
+    [Header("Reload References")]
     [SerializeField] private Image reloadCircle;
     [SerializeField] private TMP_Text reloadText;
 

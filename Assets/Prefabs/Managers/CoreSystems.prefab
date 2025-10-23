@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2836250119233506756}
   - component: {fileID: 929233457969391753}
   - component: {fileID: 7809086995347757922}
+  - component: {fileID: 521766944931937816}
   - component: {fileID: 4354844212358398856}
   m_Layer: 0
   m_Name: CoreSystems
@@ -96,6 +97,26 @@ MonoBehaviour:
   uiGroup: {fileID: 6511882457445414133, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
   sfxGroup: {fileID: -5618599687239861475, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
   musicGroup: {fileID: -7697465087078640370, guid: 61ecb4abebf4c3645a0a8ca2e570de3d, type: 2}
+--- !u!114 &521766944931937816
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2926435633354665858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18cf8dac70277f04090d93b2c46ddb9e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floatingTextPrefab: {fileID: 1921264804355652127, guid: abf0b5364de1c3b479b38b65a9e820e5, type: 3}
+  poolSize: 10
+  floatSpeed: 1.5
+  lifetime: 1
+  normalColor: {r: 0, g: 0, b: 0, a: 1}
+  headshotColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  shieldColor: {r: 0, g: 1, b: 1, a: 1}
+  killColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!114 &4354844212358398856
 MonoBehaviour:
   m_ObjectHideFlags: 0

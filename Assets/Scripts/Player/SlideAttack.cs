@@ -214,7 +214,7 @@ public class SlideAttack : MonoBehaviour
     private void DealSlideDamage(EnemyHealth enemyHealth)
     {
         float totalDamage = slideAttackDamage * multiplier.GetDamageMultiplier();
-        enemyHealth.TakeDamage(totalDamage);
+        enemyHealth.TakeDamage(totalDamage, EnemyHurtbox.HurtboxType.Body, enemyHealth.transform.position);
         multiplier.AddSlideHit();
     }
 }

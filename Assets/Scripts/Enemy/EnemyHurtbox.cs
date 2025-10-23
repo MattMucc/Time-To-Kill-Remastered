@@ -19,14 +19,14 @@ public class EnemyHurtbox : MonoBehaviour
         col = GetComponent<Collider>();
     }
 
-    public void TakeDamage(float amount, out HurtboxType hitType)
+    public void TakeDamage(float amount, out HurtboxType hurtboxType, Vector3 hitPoint)
     {
-        hitType = type;
+        hurtboxType = type;
         if (!health)
             return;
 
         float finalDamage = amount * damageMultiplier;
-        health.TakeDamage(finalDamage);
+        health.TakeDamage(finalDamage, hurtboxType, hitPoint);
     }
 
     private void OnGUI()

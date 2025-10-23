@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
+using static HitmarkerManager;
 
 public class WeaponHandler : MonoBehaviour
 {
@@ -213,12 +214,15 @@ public class WeaponHandler : MonoBehaviour
 
                     if (hitInfo.collider.TryGetComponent(out EnemyHurtbox hurtbox))
                     {
-                        hurtbox.TakeDamage(Damage, out EnemyHurtbox.HurtboxType hitType);
+                        hurtbox.TakeDamage(Damage, out EnemyHurtbox.HurtboxType hitType, hitInfo.point);
+
+                        // Update multiplier meter
                         if (hitType == EnemyHurtbox.HurtboxType.Head)
                             multiplier.AddHeadshot();
                         else if (hitType == EnemyHurtbox.HurtboxType.Body)
                             multiplier.AddDamage(Damage);
 
+                        // Spawn hit effect
                         if (currentWeapon.hitEffect)
                         {
                             GameObject hitEffect = Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
@@ -227,19 +231,26 @@ public class WeaponHandler : MonoBehaviour
                     }
                     else if (hitInfo.collider.TryGetComponent(out EnemyHealth enemyHealth))
                     {
-                        enemyHealth.TakeDamage(Damage);
+                        enemyHealth.TakeDamage(Damage, EnemyHurtbox.HurtboxType.Body, hitInfo.point);
+
+                        // Update multiplier meter
                         multiplier.AddDamage(Damage);
+
+                        // Spawn hit effect
                         if (currentWeapon.hitEffect)
                         {
                             GameObject hitEffect = Instantiate(currentWeapon.hitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
                             Destroy(hitEffect, 1f);
                         }
                     }
-
-                    if (currentWeapon.misfireHitEffect)
+                    else
                     {
-                        GameObject hitEffect = Instantiate(currentWeapon.misfireHitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
-                        Destroy(hitEffect, 1f);
+                        // Spawn misfire hit effect
+                        if (currentWeapon.misfireHitEffect)
+                        {
+                            GameObject hitEffect = Instantiate(currentWeapon.misfireHitEffect, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+                            Destroy(hitEffect, 1f);
+                        }
                     }
                 }
             }

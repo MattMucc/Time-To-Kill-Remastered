@@ -29,6 +29,7 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private EnemyUI ui;
+    private GameObject player;
 
     private void Start()
     {
@@ -40,6 +41,7 @@ public class EnemyHealth : MonoBehaviour
         currentShield = maxShield;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         OnShieldChanged?.Invoke(currentShield, maxShield);
+        player = GameObject.FindGameObjectWithTag("Player");
     }
 
     private void Update()
@@ -87,18 +89,22 @@ public class EnemyHealth : MonoBehaviour
         OnShieldChanged?.Invoke(currentShield, maxShield);
     }
 
-    public void TakeDamage(float amount)
+    public void TakeDamage(float amount, EnemyHurtbox.HurtboxType hurtboxType, Vector3 hitPoint)
     {
         if (isDead || amount <= 0f)
             return;
 
         shieldRegenTimer = 0f;
         float remainingDamage = amount;
+        bool damagedShield = false;
         if (usesShield && currentShield > 0f)
         {
+            damagedShield = true;
             float absorbed = Mathf.Min(currentShield, remainingDamage);
             currentShield -= absorbed;
             remainingDamage -= absorbed;
+            HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Shield);
+            FloatingTextManager.instance.SpawnText(hitPoint, absorbed, HitmarkerManager.HitType.Shield);
             OnShieldChanged?.Invoke(currentShield, maxShield);
             if (currentShield <= 0f)
             {
@@ -111,20 +117,38 @@ public class EnemyHealth : MonoBehaviour
         if (remainingDamage > 0f)
         {
             currentHealth -= remainingDamage;
+            if (!damagedShield && currentHealth > 0f)
+            {
+                switch (hurtboxType)
+                {
+                    case EnemyHurtbox.HurtboxType.Head:
+                        HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Headshot);
+                        FloatingTextManager.instance.SpawnText(hitPoint, remainingDamage, HitmarkerManager.HitType.Headshot);
+                        break;
+                    default:
+                        HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Normal);
+                        FloatingTextManager.instance.SpawnText(hitPoint, remainingDamage, HitmarkerManager.HitType.Normal);
+                        break;
+                }
+            }
+
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
 
         if (currentHealth <= 0)
-            Die();
+            Die(remainingDamage);
     }
 
-    private void Die()
+    private void Die(float damage = 0f)
     {
         if (isDead)
             return;
 
         // Play death animation, drop loot?, disable AI
         isDead = true;
+        player.GetComponent<MultiplierSystem>()?.AddKill();
+        HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Kill);
+        FloatingTextManager.instance.SpawnText(transform.position, damage, HitmarkerManager.HitType.Kill);
         OnEnemyDeath?.Invoke();
         Destroy(gameObject);
     }
