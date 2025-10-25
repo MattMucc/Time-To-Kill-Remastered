@@ -14,6 +14,11 @@ public abstract class BaseEnemy : MonoBehaviour
     public float attackCooldown = 1.5f;
     protected float lastAttackTime = -1f;
 
+    [Header("Gravity Settings")]
+    public float gravity = -30f;
+    public bool useGravity = true;
+    private float verticalVelocity = 0f;
+
     [Header("States (Read-Only)")]
     public bool isAttacking = false;
     public bool isChasing = false;
@@ -38,6 +43,20 @@ public abstract class BaseEnemy : MonoBehaviour
             return;
 
         DetectPlayer();
+        ApplyGravity();
+    }
+
+    protected virtual void ApplyGravity()
+    {
+        if (!useGravity || !controller)
+            return;
+
+        if (controller.isGrounded)
+            verticalVelocity = -1f; // Small downward force to keep grounded
+        else
+            verticalVelocity += gravity * Time.deltaTime;
+
+        controller.Move(Vector3.up * verticalVelocity * Time.deltaTime);
     }
 
     protected virtual void DetectPlayer()

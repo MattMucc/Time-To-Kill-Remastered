@@ -45,24 +45,18 @@ public class AudioManager : MonoBehaviour
     {
         if (clip)
             uiSource.PlayOneShot(clip);
-        else
-            Debug.LogWarning("UI sound is missing or not assigned!");
     }
 
     public void PlaySFXSound(AudioClip clip)
     {
         if (clip)
             sfxSource.PlayOneShot(clip);
-        else
-            Debug.LogWarning("SFX sound is missing or not assigned!");
     }
 
     public void PlayMusicSound(AudioClip clip)
     {
         if (clip)
             musicSource.PlayOneShot(clip);
-        else
-            Debug.LogWarning("Music sound is missing or not assigned!");
     }
 
     public void PlayPreview(AudioClip clip, string mixerGroup)

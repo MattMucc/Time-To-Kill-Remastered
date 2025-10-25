@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -48,6 +50,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Image grappleIcon;
     [SerializeField] private Image grappleCooldownImage;
 
+    [Header("Room/Wave References")]
+    [Tooltip("Optional text field to display the current room name.")]
+    [SerializeField] private TMP_Text roomNameText;
+    [SerializeField] private TMP_Text currentWaveText;
+    [SerializeField] private TMP_Text enemyCountText;
+    [SerializeField] private GameObject enemiesRemaining;
+
     // Component References
     private PlayerHealth playerHealth;
     private PlayerInventory playerInventory;
@@ -75,6 +84,9 @@ public class UIManager : MonoBehaviour
         reloadText.gameObject.SetActive(false);
         slideCooldownImage.fillAmount = 0;
         grappleCooldownImage.fillAmount = 0;
+        roomNameText.gameObject.SetActive(false);
+        currentWaveText.gameObject.SetActive(false);
+        enemiesRemaining.SetActive(false);
     }
 
     private void OnEnable()
@@ -349,6 +361,106 @@ public class UIManager : MonoBehaviour
             return;
 
         grappleLockOn.enabled = value;
+    }
+
+    public void ShowRoomInfo(string roomName, int totalWaves)
+    {
+        if (!roomNameText || string.IsNullOrEmpty(roomName) || !currentWaveText || totalWaves <= 0)
+            return;
+
+        StopAllCoroutines();
+        StartCoroutine(FadeRoomName(roomName));
+        currentWaveText.text = $"Wave 1";
+        StartCoroutine(FadeInWaveDisplay());
+        HideEnemiesRemaining();
+    }
+
+    public void UpdateWaveDisplay(int currentWave)
+    {
+        if (!currentWaveText || currentWave <= 0)
+            return;
+
+        currentWaveText.text = $"Wave {currentWave}";
+    }
+
+    public void UpdateEnemiesRemaining(int count, bool roomActive)
+    {
+        if (!enemyCountText || !enemiesRemaining)
+            return;
+
+        enemyCountText.text = $"{count}";
+        enemiesRemaining.SetActive(count > 0 && roomActive);
+    }
+
+    public void HideWaveDisplay()
+    {
+        if (!currentWaveText)
+            return;
+
+        currentWaveText.gameObject.SetActive(false);
+    }
+
+    public void HideEnemiesRemaining()
+    {
+        if (!enemiesRemaining)
+            return;
+
+        enemiesRemaining.SetActive(false);
+    }
+
+    private IEnumerator FadeRoomName(string name)
+    {
+        roomNameText.text = name.ToUpper();
+        roomNameText.gameObject.SetActive(true);
+
+        Color c = roomNameText.color;
+        c.a = 0f;
+        roomNameText.color = c;
+
+        // Fade in
+        float fadeInTime = 1.5f;
+        float stayTime = 2.5f;
+        float fadeOutTime = 1.5f;
+        float timer = 0f;
+        while (timer < fadeInTime)
+        {
+            timer += Time.deltaTime;
+            c.a = Mathf.Lerp(0f, 1f, timer / fadeInTime);
+            roomNameText.color = c;
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(stayTime);
+
+        timer = 0f;
+        while (timer < fadeOutTime)
+        {
+            timer += Time.deltaTime;
+            c.a = Mathf.Lerp(1f, 0f, timer / fadeOutTime);
+            roomNameText.color = c;
+            yield return null;
+        }
+
+        roomNameText.gameObject.SetActive(false);
+    }
+
+    private IEnumerator FadeInWaveDisplay()
+    {
+        currentWaveText.gameObject.SetActive(true);
+
+        Color c = currentWaveText.color;
+        c.a = 0f;
+        currentWaveText.color = c;
+
+        float fadeInTime = 1.5f;
+        float timer = 0f;
+        while (timer < fadeInTime)
+        {
+            timer += Time.deltaTime;
+            c.a = Mathf.Lerp(0f, 1f, timer / fadeInTime);
+            currentWaveText.color = c;
+            yield return null;
+        }
     }
 
     private void OnControlSchemeChanged(string scheme)
