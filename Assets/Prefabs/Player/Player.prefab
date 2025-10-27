@@ -624,7 +624,7 @@ MonoBehaviour:
   useSphereCast: 1
   sphereCastRadius: 0.25
   cameraTransform: {fileID: 2733484752409803505}
-  controller: {fileID: 0}
+  controller: {fileID: 949511379179615293}
   lineRenderer: {fileID: 3307805221344552328}
   grappleLayer:
     serializedVersion: 2
@@ -653,7 +653,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   requireJumpToStart: 0
-  wallJumpCooldown: 1
+  wallJumpCooldown: 0.3
   minJumpOffForce: 10
   jumpUpFactor: 0.5
   isWallRunning: 0
