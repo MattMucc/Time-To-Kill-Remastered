@@ -653,8 +653,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   requireJumpToStart: 0
+  wallJumpCooldown: 1
   minJumpOffForce: 10
-  jumpUpFactor: 0.75
+  jumpUpFactor: 0.5
   isWallRunning: 0
   isWallRight: 0
 --- !u!120 &3307805221344552328

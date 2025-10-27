@@ -16,6 +16,7 @@ public class CameraController : MonoBehaviour
     private Vector2 lookInput;
     private float pitch;
     private float yaw;
+    private float roll; // Tilt
     private float wallRunYawAnchor;
 
     private void Start()
@@ -55,7 +56,12 @@ public class CameraController : MonoBehaviour
         pitch = Mathf.Clamp(pitch, -89f, 89f);
 
         WallRunClamp();
-        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+        if (wallRun && wallRun.isWallRunning)
+            roll = wallRun.CurrentTilt;
+        else if (wallRun && !wallRun.isWallRunning)
+            roll = Mathf.Lerp(roll, 0f, 6 * Time.deltaTime);
+
+        cameraRoot.localRotation = Quaternion.Euler(pitch, 0f, roll);
         playerTransform.localRotation = Quaternion.Euler(0f, yaw, 0f);
     }
 

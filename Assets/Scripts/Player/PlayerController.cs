@@ -170,8 +170,11 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary> Applies an external force impulse to the player, used for rocket jumping or explosions. </summary>
-    public void ApplyExternalForce(Vector3 force)
+    public void ApplyExternalForce(Vector3 force, bool resetVerticalVelocity = false)
     {
+        if (resetVerticalVelocity)
+            verticalVelocity = 0f; // Cancel downward pull before impulse
+
         externalForce += force;
     }
 

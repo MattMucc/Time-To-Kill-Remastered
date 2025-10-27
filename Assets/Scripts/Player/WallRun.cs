@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
@@ -22,12 +23,13 @@ public class WallRun : MonoBehaviour
     [Tooltip("A percent of minJumpOffForce used upwards.")]
     public LayerMask wallLayer;
     public bool requireJumpToStart = false;
+    private float currentTilt = 0f;
 
     [Header("Wall Jump Settings")]
+    public float wallJumpCooldown = 0.2f;
     public float minJumpOffForce = 5f;
     public float jumpUpFactor = 0.75f;
-    private float lastJumpPressTime = -1f;
-    private float jumpBufferTime = 0.2f; // Allow jump input up to 0.2 seconds early
+    private bool wallJumpedRecently = false;
 
     [Header("Wall Running State (Read-Only)")]
     public bool isWallRunning = false;
@@ -54,17 +56,19 @@ public class WallRun : MonoBehaviour
 
     private void Update()
     {
-        if (InputManager.instance.JumpPressed)
-            lastJumpPressTime = Time.time;
+        if (movement.isGrounded)
+            StopWallRun();
 
         DetectWall();
         WallRunInput();
         HandleWallRun();
+        WallJumpInput();
+        HandleCameraTilt();
     }
 
     private void DetectWall()
     {
-        if (isWallRunning)
+        if (isWallRunning || wallJumpedRecently)
             return;
 
         bool rightHit = Physics.SphereCast(DetectOrigin, wallDetectionRadius, transform.right, out RaycastHit hitR, wallDetectionDistance, wallLayer, QueryTriggerInteraction.Ignore);
@@ -84,6 +88,9 @@ public class WallRun : MonoBehaviour
 
     private void WallRunInput()
     {
+        if (wallJumpedRecently)
+            return;
+
         if (!isWallRunning && IsNearWall)
         {
             if (requireJumpToStart && InputManager.instance.JumpPressed)
@@ -92,6 +99,27 @@ public class WallRun : MonoBehaviour
             }
             else if (!movement.isGrounded)
                 StartWallRun();
+        }
+    }
+
+    private void WallJumpInput()
+    {
+        if (isWallRunning && InputManager.instance.JumpPressed)
+        {
+            Vector3 camForward = camController.transform.forward;
+            camForward.y = 0f;
+            camForward.Normalize();
+
+            Vector3 upDir = Vector3.up * (minJumpOffForce * jumpUpFactor);
+            Vector3 blended = Vector3.Slerp(wallNormal, camForward, 0.8f); // Heavy bias towards camera
+            Vector3 jumpDir = (blended.normalized * minJumpOffForce) + upDir;
+            Vector3 forwardBoost = camForward * wallRunSpeed * 0.3f;
+            //Debug.DrawRay(transform.position, jumpDir.normalized * 3f, Color.cyan, 1f);
+            movement.ApplyExternalForce(jumpDir, false);
+            controller.Move(wallNormal * 0.3f); // Small wall nudge
+
+            StopWallRun();
+            StartCoroutine(WallJumpCooldown());
         }
     }
 
@@ -117,20 +145,37 @@ public class WallRun : MonoBehaviour
         if (!isWallRunning)
             return;
 
+        ClearWallState();
+
+        // Reset player body rotation
+        transform.rotation = Quaternion.LookRotation(camController.transform.forward, Vector3.up);
+    }
+
+    private void ClearWallState()
+    {
+        idleTime = 0f;
+        wallNormal = Vector3.zero;
         isWallRunning = false;
         movement.overrideSpeed = false;
         movement.overrideJump = false;
+    }
 
-        // reset camera roll
-        Vector3 rot = cameraRoot.localEulerAngles;
-        rot.z = 0f;
-        cameraRoot.localEulerAngles = rot;
-        idleTime = 0f;
+    private void HandleCameraTilt()
+    {
+        float targetTilt = 0f;
+        if (isWallRunning)
+            targetTilt = isWallRight ? cameraTiltAngle : -cameraTiltAngle;
+
+        // Smooth tilt interpolation
+        currentTilt = Mathf.Lerp(currentTilt, targetTilt, cameraTiltSpeed * Time.deltaTime);
+
+        // Apply it cleanly without disturbing pitch/yaw
+        cameraRoot.localRotation = Quaternion.Euler(cameraRoot.localEulerAngles.x, cameraRoot.localEulerAngles.y, currentTilt);
     }
 
     private void HandleWallRun()
     {
-        if (!isWallRunning)
+        if (!isWallRunning || wallJumpedRecently)
             return;
 
         if (movement.isGrounded)
@@ -157,6 +202,7 @@ public class WallRun : MonoBehaviour
         Quaternion targetRot = Quaternion.LookRotation(wallForward, Vector3.up);
         transform.rotation = Quaternion.Lerp(transform.rotation, targetRot, 10f * Time.deltaTime);
 
+        // Apply modified gravity
         float dynamicMultiplier;
         bool moveForward = InputManager.instance.Move.y > 0f;
         if (moveForward)
@@ -182,27 +228,17 @@ public class WallRun : MonoBehaviour
 
         // Slight stick to wall
         controller.Move(-wallNormal * 5f * Time.deltaTime);
+    }
 
-        // Camera tilt
-        float targetTilt = isWallRight ? cameraTiltAngle : -cameraTiltAngle;
-        float zRot = Mathf.LerpAngle(cameraRoot.localEulerAngles.z, targetTilt, cameraTiltSpeed * Time.deltaTime);
-        cameraRoot.localRotation = Quaternion.Euler(cameraRoot.localEulerAngles.x, cameraRoot.localEulerAngles.y, zRot);
-
-        if (InputManager.instance.JumpPressed && Time.time - lastJumpPressTime <= jumpBufferTime)
-        {
-            Vector3 forwardDir = transform.forward;
-            Vector3 upDir = Vector3.up * (minJumpOffForce * jumpUpFactor);
-            Vector3 awayFromWall = Vector3.Lerp(forwardDir, wallNormal, 0.3f).normalized;
-            Vector3 jumpDir = (awayFromWall * minJumpOffForce) + upDir;
-            Vector3 preserveMomentum = forwardDir * wallRunSpeed * 0.5f;
-            movement.ApplyExternalForce(jumpDir + preserveMomentum);
-            StopWallRun();
-            idleTime = 0f;
-            lastJumpPressTime = -1f;
-        }
+    private IEnumerator WallJumpCooldown()
+    {
+        wallJumpedRecently = true;
+        yield return new WaitForSeconds(wallJumpCooldown);
+        wallJumpedRecently = false;
     }
 
     public void StartWallRunFromController() => StartWallRun();
     public bool IsNearWall => wallNormal != Vector3.zero;
+    public float CurrentTilt => currentTilt;
     private Vector3 DetectOrigin => transform.position + Vector3.up * Mathf.Max(1f, controller.height * 0.5f);
 }
