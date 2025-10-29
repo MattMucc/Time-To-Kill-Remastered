@@ -376,7 +376,7 @@ MonoBehaviour:
   groundCheckDistance: 0.01
   groundLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 9
   cameraTransform: {fileID: 2733484752409803505}
 --- !u!114 &5266276683089128988
 MonoBehaviour:
@@ -427,7 +427,7 @@ MonoBehaviour:
   currentWeapon: {fileID: 0}
   currentWeaponSlot: 0
   weaponSwitchCooldown: 0.25
-  maxWeaponSlots: 5
+  maxWeaponSlots: 3
   maxThrowableSlots: 1
   maxThrowableAmount: 5
   weaponModel: {fileID: 5340015761817146813}
@@ -565,6 +565,7 @@ MonoBehaviour:
   reloadTimeLimiter: 0.5
   meter: 0
   multiplier: 1
+  isDecayPaused: 0
   OnMultiplierChanged:
     m_PersistentCalls:
       m_Calls: []

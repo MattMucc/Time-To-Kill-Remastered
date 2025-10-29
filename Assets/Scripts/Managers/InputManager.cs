@@ -78,21 +78,17 @@ public class InputManager : MonoBehaviour
     public void EnablePlayerInput()
     {
         controls.Player.Enable();
-    }
-
-    public void DisablePlayerInput()
-    {
-        controls.Player.Disable();
+        controls.UI.Disable();
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     public void EnableUIInput()
     {
         controls.UI.Enable();
-    }
-
-    public void DisableUIInput()
-    {
-        controls.UI.Disable();
+        controls.Player.Disable();
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible = true;
     }
 
     private void DetectCurrentScheme()

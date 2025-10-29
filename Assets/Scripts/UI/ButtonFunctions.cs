@@ -129,7 +129,12 @@ public class ButtonFunctions : MonoBehaviour
         {
             SaveData data = SaveSystem.LoadGame();
             if (data != null)
-                LoadScene(data.sceneState.sceneName);
+            {
+                if (data.sceneState.sceneName != null)
+                    LoadScene(data.sceneState.sceneName);
+                else
+                    LoadScene(SceneLibrary.LevelOne);
+            }
         }
         else
             LoadScene(SceneLibrary.LevelOne);

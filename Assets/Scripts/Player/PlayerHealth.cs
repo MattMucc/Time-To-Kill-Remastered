@@ -135,7 +135,6 @@ public class PlayerHealth : MonoBehaviour
         isDead = true;
         OnPlayerDeath?.Invoke();
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
-        InputManager.instance.DisablePlayerInput();
         InputManager.instance.EnableUIInput();
     }
 

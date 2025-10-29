@@ -55,7 +55,6 @@ public class GameStateManager : MonoBehaviour
         isPaused = true;
         Time.timeScale = 0f;
 
-        InputManager.instance.DisablePlayerInput();
         InputManager.instance.EnableUIInput();
         UIManager.instance.OpenPause();
         OnPause?.Invoke();
@@ -69,7 +68,6 @@ public class GameStateManager : MonoBehaviour
         isPaused = false;
         Time.timeScale = 1f;
         InputManager.instance.EnablePlayerInput();
-        InputManager.instance.DisableUIInput();
         UIManager.instance.OpenHUD();
         OnResume?.Invoke();
     }

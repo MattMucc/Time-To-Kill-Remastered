@@ -40,7 +40,7 @@ public class Checkpoint : MonoBehaviour
         if (SaveSystem.HasSaveData())
         {
             // Scene
-            data.sceneState.sceneName = SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
+            data.sceneState.sceneName = data.sceneState.sceneName == null && SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
             data.sceneState.checkpointName = checkpointName;
             data.sceneState.checkpoint = gameObject;
             if (!data.sceneState.checkpointsReached.Contains(checkpointName))
@@ -64,7 +64,7 @@ public class Checkpoint : MonoBehaviour
             };
 
             // Scene
-            data.sceneState.sceneName = SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
+            data.sceneState.sceneName = data.sceneState.sceneName == null && SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
             data.sceneState.checkpointName = checkpointName;
             data.sceneState.checkpoint = gameObject;
             if (!data.sceneState.checkpointsReached.Contains(checkpointName))

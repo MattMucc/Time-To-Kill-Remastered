@@ -166,7 +166,7 @@ public class EnemyHealth : MonoBehaviour
         if (id && !data.worldState.defeatedEnemies.Contains(id.ID))
             data.worldState.defeatedEnemies.Add(id.ID);
 
-        SaveSystem.SaveGame(data);
+        SaveSystem.SaveGame(data, false);
         OnEnemyDeath?.Invoke();
         Destroy(gameObject);
     }

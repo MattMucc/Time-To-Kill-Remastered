@@ -11,7 +11,7 @@ public static class SaveSystem
         if (HasSaveData())
         {
             // Scene
-            data.sceneState.sceneName = SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
+            data.sceneState.sceneName = data.sceneState.sceneName == null && SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
             if (data.sceneState.checkpointsReached.Count > 0)
                 data.sceneState.checkpointName = data.sceneState.checkpointsReached[data.sceneState.checkpointsReached.Count - 1];
 
@@ -42,7 +42,7 @@ public static class SaveSystem
             };
 
             // Scene
-            data.sceneState.sceneName = SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
+            data.sceneState.sceneName = data.sceneState.sceneName == null && SceneLibrary.GetCurrentSceneName() == SceneLibrary.MainMenu ? SceneLibrary.LevelOne : SceneLibrary.GetCurrentSceneName();
             data.sceneState.checkpointName = "";
             data.sceneState.checkpoint = null;
 
@@ -60,12 +60,12 @@ public static class SaveSystem
         SaveGame(data);
     }
 
-    public static void SaveGame(SaveData data)
+    public static void SaveGame(SaveData data, bool displayGameSaved = true)
     {
         string json = JsonUtility.ToJson(data);
         PlayerPrefs.SetString(saveKey, json);
         PlayerPrefs.Save();
-        Debug.Log("Game Saved!");
+        UIManager.instance.DisplayGameSaved();
         Debug.Log(JsonUtility.ToJson(data, true));
     }
 
