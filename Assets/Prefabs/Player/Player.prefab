@@ -595,10 +595,16 @@ MonoBehaviour:
   slideCooldown: 2
   minDamageSpeed: 10
   isSliding: 0
+  canSlide: 1
+  slideOnCooldown: 0
+  standingHeight: 2
+  slideHeight: 1
+  heightChangeSpeed: 10
   slideAttackDamage: 10
-  enableContinuousDamage: 0
   continuousDamageInterval: 0.5
+  enableContinuousDamage: 0
   playerTransform: {fileID: 8714590750173940197}
+  cameraRootTransform: {fileID: 63936895865666064}
   slideCollider: {fileID: 3603200276705451684}
 --- !u!114 &3646265836642009060
 MonoBehaviour:
@@ -907,7 +913,7 @@ Transform:
   m_GameObject: {fileID: 4306241435837372704}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1124,7 +1130,7 @@ Transform:
   m_GameObject: {fileID: 6187405559096613686}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

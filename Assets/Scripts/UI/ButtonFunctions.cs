@@ -127,8 +127,9 @@ public class ButtonFunctions : MonoBehaviour
     {
         if (SaveSystem.HasSaveData())
         {
-            SaveData data = SaveSystem.LoadProgress();
-            LoadScene(data.currentLevel);
+            SaveData data = SaveSystem.LoadGame();
+            if (data != null)
+                LoadScene(data.sceneState.sceneName);
         }
         else
             LoadScene(SceneLibrary.LevelOne);
@@ -152,19 +153,29 @@ public class ButtonFunctions : MonoBehaviour
             GameStateManager.instance.RestartLevel();
     }
 
+    public void Save()
+    {
+        SaveSystem.Save();
+    }
+
+    public void ClearData()
+    {
+        SaveSystem.ClearData();
+    }
+
     public void QuitToMenu()
     {
         Resume();
         HideAllMenus();
         ShowMenu("Main");
-        Debug.Log("Save before quitting!");
+        Save();
         LoadScene(SceneLibrary.MainMenu);
     }
 
     public void Quit()
     {
+        Save();
 #if UNITY_EDITOR
-        Debug.Log("Save before quitting!");
         UnityEditor.EditorApplication.isPlaying = false;
 #else
         Application.Quit();

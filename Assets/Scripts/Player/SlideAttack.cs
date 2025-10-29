@@ -19,23 +19,32 @@ public class SlideAttack : MonoBehaviour
     public float slideCooldown = 2f;
     public float minDamageSpeed = 10f;
     public bool isSliding = false;
+    [SerializeField] private bool canSlide = true;
+    [SerializeField] private bool slideOnCooldown = false;
+
+    [Header("Crouch Settings")]
+    public float standingHeight = 2f;
+    public float slideHeight = 1f;
+    public float heightChangeSpeed = 10f;
+    private Vector3 standingCameraHeight;
+    private Vector3 standingCenter;
+    private Vector3 slideCenter;
 
     [Header("Attack Settings")]
     public float slideAttackDamage = 10f;
-    public bool enableContinuousDamage = false;
     public float continuousDamageInterval = 0.5f;
+    public bool enableContinuousDamage = false;
 
     [Header("References")]
     [SerializeField] private Transform playerTransform;
+    [SerializeField] private Transform cameraRootTransform;
     [SerializeField] private Collider slideCollider;
     private PlayerController movement;
     private MultiplierSystem multiplier;
     private CameraEffects cameraEffects;
     private CharacterController controller;
 
-    private bool canSlide = true;
     private float continuousDamageTimer = 0f;
-
     private HashSet<EnemyHealth> damagedEnemies = new HashSet<EnemyHealth>();
 
     private void Start()
@@ -46,6 +55,10 @@ public class SlideAttack : MonoBehaviour
         cameraEffects = Camera.main.gameObject.GetComponent<CameraEffects>();
         controller = GetComponent<CharacterController>();
         slideCollider.enabled = false;
+        standingCameraHeight = cameraRootTransform.localPosition;
+        standingHeight = controller.height;
+        standingCenter = controller.center;
+        slideCenter = new Vector3(0f, slideHeight / 2f, 0f);
     }
 
     private void Update()
@@ -55,6 +68,8 @@ public class SlideAttack : MonoBehaviour
 
         SlideInput();
         SlideMovement();
+        HandleSlideHeight();
+        HandleCameraSlideHeight();
         movement.overrideSpeed = isSliding;
     }
 
@@ -141,13 +156,16 @@ public class SlideAttack : MonoBehaviour
         {
             float normalizedSpeed = Mathf.InverseLerp(movement.Speed, slideSpeedBoost, currentSpeed);
             //cameraEffects.TriggerFOVBurst(normalizedSpeed);
-
         }
     }
 
     private void StopSlide()
     {
         if (!isSliding)
+            return;
+
+        // Prevent standing up when obstructed
+        if (Physics.Raycast(transform.position, Vector3.up, out RaycastHit hit, standingHeight - slideHeight + 0.2f))
             return;
 
         isSliding = false;
@@ -157,8 +175,32 @@ public class SlideAttack : MonoBehaviour
         damagedEnemies.Clear();
     }
 
+    private void HandleSlideHeight()
+    {
+        float targetHeight = InputManager.instance.SlideHeld && !slideOnCooldown ? slideHeight : standingHeight;
+        Vector3 targetCenter = InputManager.instance.SlideHeld && !slideOnCooldown ? slideCenter : standingCenter;
+        controller.height = Mathf.Lerp(controller.height, targetHeight, heightChangeSpeed * Time.deltaTime);
+        controller.center = Vector3.Lerp(controller.center, targetCenter, heightChangeSpeed * Time.deltaTime);
+    }
+
+    private void HandleCameraSlideHeight()
+    {
+        Vector3 camLocalPos = cameraRootTransform.localPosition;
+        float targetY = InputManager.instance.SlideHeld && !slideOnCooldown ? slideCenter.y + 0.5f : standingCameraHeight.y;
+        camLocalPos.y = Mathf.Lerp(camLocalPos.y, targetY, heightChangeSpeed * Time.deltaTime);
+        cameraRootTransform.localPosition = camLocalPos;
+    }
+
+    private void DealSlideDamage(EnemyHealth enemyHealth)
+    {
+        float totalDamage = slideAttackDamage * multiplier.GetDamageMultiplier();
+        enemyHealth.TakeDamage(totalDamage, EnemyHurtbox.HurtboxType.Body, enemyHealth.transform.position);
+        multiplier.AddSlideHit();
+    }
+
     private IEnumerator SlideCooldown()
     {
+        slideOnCooldown = true;
         float cooldown = slideCooldown;
         float timer = 0f;
         while (timer < cooldown)
@@ -170,6 +212,7 @@ public class SlideAttack : MonoBehaviour
 
         UIManager.instance.UpdateSlideCooldown(0f);
         canSlide = true;
+        slideOnCooldown = false;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -209,12 +252,5 @@ public class SlideAttack : MonoBehaviour
             if (damagedEnemies.Contains(enemyHealth))
                 damagedEnemies.Remove(enemyHealth);
         }
-    }
-
-    private void DealSlideDamage(EnemyHealth enemyHealth)
-    {
-        float totalDamage = slideAttackDamage * multiplier.GetDamageMultiplier();
-        enemyHealth.TakeDamage(totalDamage, EnemyHurtbox.HurtboxType.Body, enemyHealth.transform.position);
-        multiplier.AddSlideHit();
     }
 }

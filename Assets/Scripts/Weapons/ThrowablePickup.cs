@@ -6,7 +6,9 @@ public class ThrowablePickup : MonoBehaviour
 {
     [Header("Pickup Info")]
     public WeaponData weaponData;
+    public PersistenceID id;
     public int amount = 1;
+    public bool canPickUp = true;
 
     [Header("Prompt Settings")]
     public float interactRange = 5f;
@@ -16,8 +18,20 @@ public class ThrowablePickup : MonoBehaviour
     private PlayerInventory playerInventory;
     private UIManager uiManager => UIManager.instance;
 
+    private void Awake()
+    {
+        id = GetComponent<PersistenceID>();
+    }
+
     private void Start()
     {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null && data.worldState.collectedPickups.Contains(id.ID))
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         keyName = InputManager.instance.GetBindingDisplay("Player/Interact");
         if (GetComponent<Collider>())
             GetComponent<Collider>().isTrigger = true;
@@ -63,17 +77,33 @@ public class ThrowablePickup : MonoBehaviour
         string message;
         WeaponData currentThrowable = playerInventory.ownedThrowables.Count > 0 ? playerInventory.ownedThrowables[0].throwableData : null;
         if (!currentThrowable)
+        {
             message = $"Press [{keyName}] to pick up {weaponData.weaponName}";
+            canPickUp = true;
+        }
         else if (currentThrowable == weaponData)
         {
-            int currentCount = playerInventory.ownedThrowables.Count > 0 ? playerInventory.ownedThrowables[0].quantity : 0;
-            int canCarry = Mathf.Max(0, playerInventory.maxThrowableAmount - currentCount);
-            int willTake = Mathf.Min(canCarry, amount);
-            int remainder = amount - willTake;
-            message = remainder > 0 ? $"Press [{keyName}] to pick up {willTake} {weaponData.weaponName}(s) ({remainder} remaining)" : $"Press [{keyName}] to pick up {willTake} {weaponData.weaponName}(s)";
+            int currentCount = playerInventory.ownedThrowables[0].quantity;
+            int maxCarry = playerInventory.maxThrowableAmount;
+            if (currentCount >= maxCarry)
+            {
+                message = "Stack is full!";
+                canPickUp = false;
+            }
+            else
+            {
+                int canCarry = Mathf.Max(0, maxCarry - currentCount);
+                int willTake = Mathf.Min(canCarry, amount);
+                int remainder = amount - willTake;
+                message = remainder > 0 ? $"Press [{keyName}] to pick up {willTake} {weaponData.weaponName}(s) ({remainder} remaining)" : $"Press [{keyName}] to pick up {willTake} {weaponData.weaponName}(s)";
+                canPickUp = true;
+            }
         }
         else
+        {
             message = $"Press [{keyName}] to replace [{currentThrowable.weaponName} with {weaponData.weaponName}]";
+            canPickUp = true;
+        }
 
         uiManager.ShowPrompt(message);
     }
@@ -81,6 +111,9 @@ public class ThrowablePickup : MonoBehaviour
     private void TryPickUp()
     {
         if (!playerInventory)
+            return;
+
+        if (!canPickUp)
             return;
 
         if (playerInventory.ownedThrowables.Count == 0)
@@ -97,11 +130,10 @@ public class ThrowablePickup : MonoBehaviour
         {
             int currentCapacity = slot.quantity;
             int maxCarry = playerInventory.maxThrowableAmount;
-            int canCarry = Mathf.Min(0, maxCarry - currentCapacity);
+            int canCarry = Mathf.Max(0, maxCarry - currentCapacity);
             if (canCarry <= 0)
             {
                 //Already full
-                Debug.Log("Cannot pickup anymore; throwable stack is full");
                 return;
             }
 
@@ -124,13 +156,32 @@ public class ThrowablePickup : MonoBehaviour
         playerInventory.ownedThrowables.Clear();
         playerInventory.AddThrowable(weaponData, amount);
         uiManager.HidePrompt();
+        SaveData data = SaveSystem.LoadGame() ?? new SaveData();
+        if (!data.worldState.collectedPickups.Contains(id.ID))
+            data.worldState.collectedPickups.Add(id.ID);
+
+        SaveSystem.SaveGame(data);
         Destroy(gameObject);
     }
 
     private void DropThrowable(WeaponData throwable)
     {
-        if (!playerInventory)
+        if (!playerInventory || !throwable)
             return;
+
+        GameObject dropPrefab = throwable.weaponPickupPrefab;
+        if (!dropPrefab)
+        {
+            Debug.LogWarning($"No pickup prefab assigned for {throwable.weaponName}!");
+            return;
+        }
+
+        Vector3 spawnPosition = transform.position;
+        Quaternion spawnRot = Quaternion.LookRotation(playerInventory.transform.forward, Vector3.up);
+        GameObject droppedWeapon = Instantiate(dropPrefab, spawnPosition, spawnRot);
+        WeaponPickup pickupComponent = droppedWeapon.GetComponent<WeaponPickup>();
+        if (pickupComponent)
+            pickupComponent.weaponData = throwable;
 
         Debug.Log($"Dropped {throwable.weaponName}");
     }

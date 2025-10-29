@@ -39,9 +39,9 @@ public class Throwable : MonoBehaviour
                 rb.AddExplosionForce(explosionForce, transform.position, explosionRadius);
 
             // Check GetComponent<EnemyHealth>() to damage any enemies inside the blast radius
-            /*EnemyHealth enemyHealth = collider.GetComponent<EnemyHealth>();
+            EnemyHealth enemyHealth = collider.GetComponent<EnemyHealth>();
             if (enemyHealth)
-                enemyHealth.TakeDamage(damage);*/
+                enemyHealth.TakeDamage(damage, EnemyHurtbox.HurtboxType.Body, enemyHealth.transform.position);
         }
 
         Destroy(gameObject);

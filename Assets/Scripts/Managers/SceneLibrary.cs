@@ -3,8 +3,10 @@ using UnityEngine.SceneManagement;
 
 public static class SceneLibrary
 {
-    public const string TestLevel = "Test";
+    public const string MattTestLevel = "MattTest";
     public const string MainMenu = "MainMenu";
+    public const string Prototype = "Prototype";
+    public const string Tutorial = "Tutorial";
     public const string LevelOne = "Level1";
 
     public static void Load(string sceneName)
@@ -19,4 +21,5 @@ public static class SceneLibrary
     }
 
     public static bool IsMainMenuScene => UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == MainMenu;
+    public static string GetCurrentSceneName() => UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 }

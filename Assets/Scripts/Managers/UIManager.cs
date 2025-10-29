@@ -78,6 +78,29 @@ public class UIManager : MonoBehaviour
                 menuLookup.Add(menu.name, menu.menu);
         }
 
+#if !UNITY_EDITOR
+
+        if (menuLookup.TryGetValue("Pause", out GameObject pauseMenu))
+        {
+            if (pauseMenu)
+            {
+                GameObject clearDataButton = pauseMenu.transform.Find("Buttons/ClearData")?.gameObject;
+                if (clearDataButton)
+                    clearDataButton.SetActive(false);
+            }
+        }
+
+        if (menuLookup.TryGetValue("Main", out GameObject mainMenu))
+        {
+            if (mainMenu)
+            {
+                GameObject clearDataButton = mainMenu.transform.Find("Buttons/ClearData")?.gameObject;
+                if (clearDataButton)
+                    clearDataButton.SetActive(false);
+            }
+        }
+#endif
+
         multiplierMeter.fillAmount = 0;
         multiplierText.text = "x1";
         reloadCircle.gameObject.SetActive(false);
@@ -128,6 +151,9 @@ public class UIManager : MonoBehaviour
 
     public void OpenPause()
     {
+        if (SceneLibrary.IsMainMenuScene)
+            return;
+
         HideAllMenus();
         ShowMenu("Pause");
     }

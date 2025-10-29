@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 public class RoomManager : MonoBehaviour
 {
     [Header("Room Settings")]
-    [Tooltip("Optional display name for achievement tracking or title cards.")]
     public string roomName;
     public bool showRoomName = true;
     public float roomNameDisplayTime = 3f;
@@ -19,6 +18,8 @@ public class RoomManager : MonoBehaviour
     [Header("Barrier Settings")]
     [Tooltip("Objects that activate during combat and decactivate when cleared (e.g. energy gates).")]
     public List<GameObject> barriers;
+
+    public LayerMask groundLayer;
 
     [Header("States (Read-Only)")]
     [SerializeField] private WaveData currentWave;
@@ -38,6 +39,13 @@ public class RoomManager : MonoBehaviour
 
     private void Start()
     {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            if (data.roomState.clearedRooms.Contains(roomName))
+                roomCleared = true;
+        }
+
         multiplier = FindFirstObjectByType<MultiplierSystem>();
         foreach(GameObject barrier in barriers)
         {
@@ -62,11 +70,10 @@ public class RoomManager : MonoBehaviour
 
     private IEnumerator RunWaves()
     {
+        yield return new WaitForSeconds(currentWave.startDelay);
         for (currentWaveIndex = 0; currentWaveIndex < waves.Count; currentWaveIndex++)
         {
             currentWave = waves[currentWaveIndex];
-
-            yield return new WaitForSeconds(currentWave.startDelay);
 
             Debug.Log($"Starting Wave {currentWaveIndex + 1}");
             OnWaveStarted?.Invoke();
@@ -107,31 +114,39 @@ public class RoomManager : MonoBehaviour
     {
         enemiesKilledThisWave = 0;
         activeEnemies.Clear();
-        foreach(EnemySpawnInfo enemyInfo in currentWave.enemiesToSpawn)
-        {
+        foreach (EnemySpawnInfo enemyInfo in currentWave.enemiesToSpawn)
             for (int i = 0; i < enemyInfo.count; i++)
-            {
-                Transform spawnPoint = enemyInfo.fixedSpawnPoint ? enemyInfo.fixedSpawnPoint : GetRandomSpawnPoint();
-                if (!spawnPoint)
-                    continue;
+                SpawnEnemy(enemyInfo);
+    }
 
-                GameObject enemy = Instantiate(enemyInfo.enemyPrefab, spawnPoint.position, spawnPoint.rotation);
-                activeEnemies.Add(enemy);
+    private void SpawnEnemy(EnemySpawnInfo enemyInfo)
+    {
+        // Get random spawn point
+        Transform spawnPoint = enemyInfo.fixedSpawnPoint ? enemyInfo.fixedSpawnPoint : GetRandomSpawnPoint();
+        if (!spawnPoint)
+            return;
 
-                // Apply scaling
-                EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
-                BaseEnemy baseEnemy = enemy.GetComponent<BaseEnemy>();
-                if (enemyHealth)
-                {
-                    enemyHealth.maxHealth *= currentWave.healthMultiplier;
-                    enemyHealth.currentHealth = enemyHealth.maxHealth;
-                    enemyHealth.OnEnemyDeath.AddListener(() => OnEnemyDied(enemy));
-                }
+        // Find a safe spawn positon using the spawn point transform so the enemy doesn't slide or clip
+        Vector3 safePos = Vector3.zero;
+        if (Physics.Raycast(spawnPoint.position + Vector3.up * 2f, Vector3.down, out RaycastHit hit, 10f, groundLayer))
+            safePos = hit.point + Vector3.up * 0.1f;
 
-                if (baseEnemy)
-                    baseEnemy.damage *= currentWave.damageMultiplier;
-            }
+        // Instantiate new enemy nd add to list
+        GameObject enemy = Instantiate(enemyInfo.enemyPrefab, safePos, spawnPoint.rotation);
+        activeEnemies.Add(enemy);
+
+        // Apply scaling
+        EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
+        BaseEnemy baseEnemy = enemy.GetComponent<BaseEnemy>();
+        if (enemyHealth)
+        {
+            enemyHealth.maxHealth *= currentWave.healthMultiplier;
+            enemyHealth.currentHealth = enemyHealth.maxHealth;
+            enemyHealth.OnEnemyDeath.AddListener(() => OnEnemyDied(enemy));
         }
+
+        if (baseEnemy)
+            baseEnemy.damage *= currentWave.damageMultiplier;
     }
 
     private bool ShouldAdvanceWave()

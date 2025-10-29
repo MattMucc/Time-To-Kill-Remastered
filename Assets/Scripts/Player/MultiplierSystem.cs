@@ -4,7 +4,7 @@ using UnityEngine.Events;
 public class MultiplierSystem : MonoBehaviour
 {
     [Header("General Settings")]
-    public int maxMultiplier = 3;
+    [Range(1, 5)] public int maxMultiplier = 3;
     public float baseDecayDelay = 3f;
     public float baseDecayRate = 0.25f;
 
@@ -34,11 +34,11 @@ public class MultiplierSystem : MonoBehaviour
     [Tooltip("Stops reload time from exceeding past x% when affected by the multiplier (e.g. 0.5 = 50% reload time)")]
     [Range(0f, 1f)] public float reloadTimeLimiter = 0.5f;
 
-    [Header("Current Values")]
-    public float meter = 0f;
-    public int multiplier = 1;
+    [Header("States (Read-Only)")]
+    [Range(0f, 1f)] public float meter = 0f;
+    [Range(1, 5)] public int multiplier = 1;
+    [SerializeField] private bool isDecayPaused = false;
     private float decayTimer = 0f;
-    private bool isDecayPaused = false;
 
     [Header("Events")]
     public UnityEvent<int> OnMultiplierChanged;

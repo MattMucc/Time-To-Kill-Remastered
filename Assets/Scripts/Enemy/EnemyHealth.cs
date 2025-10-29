@@ -29,10 +29,23 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private EnemyUI ui;
+    [SerializeField] private PersistenceID id;
     private GameObject player;
+
+    private void Awake()
+    {
+        id = GetComponent<PersistenceID>();
+    }
 
     private void Start()
     {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null && id && data.worldState.collectedPickups.Contains(id.ID))
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         ui = GetComponentInChildren<EnemyUI>();
         if (ui)
             ui.Register(this);
@@ -149,6 +162,11 @@ public class EnemyHealth : MonoBehaviour
         player.GetComponent<MultiplierSystem>()?.AddKill();
         HitmarkerManager.instance.ShowHitmarker(HitmarkerManager.HitType.Kill);
         FloatingTextManager.instance.SpawnText(transform.position, damage, HitmarkerManager.HitType.Kill);
+        SaveData data = SaveSystem.LoadGame() ?? new SaveData();
+        if (id && !data.worldState.defeatedEnemies.Contains(id.ID))
+            data.worldState.defeatedEnemies.Add(id.ID);
+
+        SaveSystem.SaveGame(data);
         OnEnemyDeath?.Invoke();
         Destroy(gameObject);
     }

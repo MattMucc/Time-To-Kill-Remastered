@@ -66,6 +66,28 @@ public class PlayerController : MonoBehaviour
 
     private void SpawnPlayer()
     {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            if (!string.IsNullOrEmpty(data.sceneState.checkpointName))
+            {
+                Checkpoint[] checkpoints = GameObject.FindObjectsByType<Checkpoint>(FindObjectsSortMode.None);
+                foreach (Checkpoint checkpoint in checkpoints)
+                {
+                    if (checkpoint.checkpointName == data.sceneState.checkpointName)
+                        transform.position = checkpoint.transform.position;
+                }
+            }
+            else
+            {
+                GameObject spawn = GameObject.FindGameObjectWithTag("Respawn");
+                if (spawn)
+                    transform.position = spawn.transform.position;
+                else
+                    transform.position = data.playerState.position;
+            }
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 

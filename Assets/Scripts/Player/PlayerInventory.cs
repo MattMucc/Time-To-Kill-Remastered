@@ -44,8 +44,19 @@ public class PlayerInventory : MonoBehaviour
 
     private void Start()
     {
+        SaveData data = SaveSystem.LoadGame();
+        if (data != null)
+        {
+            currentWeaponSlot = data.playerState.currentWeaponSlot;
+            currentWeapon = data.playerState.currentWeapon;
+            ownedWeapons = data.playerState.weapons;
+            ownedThrowables = data.playerState.throwables;
+        }
+
         if (UIManager.instance)
             UIManager.instance.RegisterPlayerInventory(this);
+
+        EquipWeapon(currentWeapon);
     }
 
     private void Update()
