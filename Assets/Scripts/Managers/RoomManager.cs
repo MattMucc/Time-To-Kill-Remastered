@@ -10,6 +10,7 @@ public class RoomManager : MonoBehaviour
     public string roomName;
     public bool showRoomName = true;
     public float roomNameDisplayTime = 3f;
+    public float spawnInterval = 0.5f;
 
     [Tooltip("Assign the waves that make up this room encounter.")]
     public List<WaveData> waves;
@@ -52,6 +53,8 @@ public class RoomManager : MonoBehaviour
             if (barrier)
                 barrier.SetActive(false);
         }
+
+        currentWave = waves[0];
     }
 
     public void StartRoom()
@@ -98,6 +101,9 @@ public class RoomManager : MonoBehaviour
         multiplier?.PauseDecay(); // Pause decay when room is cleared
         UIManager.instance.HideWaveDisplay();
         UIManager.instance?.HideEnemiesRemaining();
+        SaveData data = SaveSystem.LoadGame();
+        data.roomState.clearedRooms.Add(roomName);
+        SaveSystem.SaveGame(data, false);
         Debug.Log($"{roomName} cleared!");
     }
 
@@ -114,9 +120,19 @@ public class RoomManager : MonoBehaviour
     {
         enemiesKilledThisWave = 0;
         activeEnemies.Clear();
+        StartCoroutine(SpawnEnemies());
+    }
+
+    private IEnumerator SpawnEnemies()
+    {
         foreach (EnemySpawnInfo enemyInfo in currentWave.enemiesToSpawn)
+        {
             for (int i = 0; i < enemyInfo.count; i++)
+            {
                 SpawnEnemy(enemyInfo);
+                yield return new WaitForSeconds(spawnInterval);
+            }
+        }
     }
 
     private void SpawnEnemy(EnemySpawnInfo enemyInfo)
@@ -128,8 +144,21 @@ public class RoomManager : MonoBehaviour
 
         // Find a safe spawn positon using the spawn point transform so the enemy doesn't slide or clip
         Vector3 safePos = Vector3.zero;
-        if (Physics.Raycast(spawnPoint.position + Vector3.up * 2f, Vector3.down, out RaycastHit hit, 10f, groundLayer))
+        if (Physics.Raycast(spawnPoint.position, Vector3.down, out RaycastHit hit, 100f, groundLayer))
             safePos = hit.point + Vector3.up * 0.1f;
+
+        float checkRadius = 0.75f;
+        Collider[] nearby = Physics.OverlapSphere(safePos, checkRadius);
+        foreach (Collider c in nearby)
+        {
+            if (c.CompareTag("Enemy"))
+            {
+                // Try shifting slightly to the side
+                safePos += Random.insideUnitSphere * 1.5f;
+                safePos.y = hit.point.y + 2;
+                break;
+            }
+        }
 
         // Instantiate new enemy nd add to list
         GameObject enemy = Instantiate(enemyInfo.enemyPrefab, safePos, spawnPoint.rotation);
@@ -142,6 +171,7 @@ public class RoomManager : MonoBehaviour
         {
             enemyHealth.maxHealth *= currentWave.healthMultiplier;
             enemyHealth.currentHealth = enemyHealth.maxHealth;
+            enemyHealth.OnHealthChanged?.Invoke(enemyHealth.currentHealth, enemyHealth.maxHealth);
             enemyHealth.OnEnemyDeath.AddListener(() => OnEnemyDied(enemy));
         }
 

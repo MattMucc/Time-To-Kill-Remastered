@@ -20,6 +20,9 @@ public class UIManager : MonoBehaviour
     public List<Menu> menus = new List<Menu>();
     private Dictionary<string, GameObject> menuLookup;
 
+    [Header("Save References")]
+    [SerializeField] private TMP_Text saveText;
+
     [Header("Prompt References")]
     [SerializeField] private InteractPrompt interactPrompt;
     [SerializeField] private Image grappleLockOn;
@@ -103,6 +106,7 @@ public class UIManager : MonoBehaviour
 
         multiplierMeter.fillAmount = 0;
         multiplierText.text = "x1";
+        saveText.gameObject.SetActive(false);
         reloadCircle.gameObject.SetActive(false);
         reloadText.gameObject.SetActive(false);
         slideCooldownImage.fillAmount = 0;
@@ -110,6 +114,20 @@ public class UIManager : MonoBehaviour
         roomNameText.gameObject.SetActive(false);
         currentWaveText.gameObject.SetActive(false);
         enemiesRemaining.SetActive(false);
+    }
+
+    private void Start()
+    {
+        if (SceneLibrary.IsMainMenuScene)
+        {
+            ShowMenu("Main");
+            InputManager.instance.EnableUIInput();
+        }
+        else
+        {
+            InputManager.instance.EnablePlayerInput();
+            OpenHUD();
+        }
     }
 
     private void OnEnable()
@@ -434,6 +452,15 @@ public class UIManager : MonoBehaviour
         enemiesRemaining.SetActive(false);
     }
 
+    public void DisplayGameSaved()
+    {
+        if (!saveText)
+            return;
+
+        saveText.gameObject.SetActive(true);
+        StartCoroutine(FadeSaveGame());
+    }
+
     private IEnumerator FadeRoomName(string name)
     {
         roomNameText.text = name.ToUpper();
@@ -456,6 +483,9 @@ public class UIManager : MonoBehaviour
             yield return null;
         }
 
+        c.a = 1f;
+        roomNameText.color = c;
+
         yield return new WaitForSeconds(stayTime);
 
         timer = 0f;
@@ -467,6 +497,8 @@ public class UIManager : MonoBehaviour
             yield return null;
         }
 
+        c.a = 0f;
+        roomNameText.color = c;
         roomNameText.gameObject.SetActive(false);
     }
 
@@ -487,6 +519,32 @@ public class UIManager : MonoBehaviour
             currentWaveText.color = c;
             yield return null;
         }
+
+        c.a = 1f;
+        currentWaveText.color = c;
+    }
+
+    private IEnumerator FadeSaveGame()
+    {
+        Color c = saveText.color;
+        c.a = 1f;
+        saveText.color = c;
+
+        yield return new WaitForSecondsRealtime(2f);
+
+        float fadeOutTime = 1.5f;
+        float timer = 0f;
+        while (timer < fadeOutTime)
+        {
+            timer += Time.unscaledDeltaTime;
+            c.a = Mathf.Lerp(1f, 0f, timer / fadeOutTime);
+            saveText.color = c;
+            yield return null;
+        }
+
+        c.a = 0f;
+        saveText.color = c;
+        saveText.gameObject.SetActive(false);
     }
 
     private void OnControlSchemeChanged(string scheme)

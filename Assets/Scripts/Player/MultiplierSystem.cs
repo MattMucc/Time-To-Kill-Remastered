@@ -15,11 +15,11 @@ public class MultiplierSystem : MonoBehaviour
     public bool adaptiveDecay = false;
 
     [Header("Meter Gains")]
-    [Range(0f, 1f)] public float fillPerKill = 0.25f;
-    [Range(0f, 1f)] public float fillPerDamage = 0.01f;
+    [Range(0f, 1f)] public float fillPerKill = 0.1f;
+    [Range(0f, 1f)] public float fillPerDamage = 0.025f;
     [Range(0f, 1f)] public float fillPerHeadshot = 0.05f;
-    [Range(0f, 1f)] public float fillPerSlideHit = 0.1f;
-    [Range(0f, 1f)] public float fillPerGrappleHit = 0.1f;
+    [Range(0f, 1f)] public float fillPerSlideHit = 0.02f;
+    [Range(0f, 1f)] public float fillPerGrappleHit = 0.01f;
 
     [Header("Scaling Values (Adaptive Mode)")]
     [Tooltip("Decay delay multiplier applied per current multiplier level (higher multiplier = faster decay).")]
@@ -114,15 +114,20 @@ public class MultiplierSystem : MonoBehaviour
 
         decayTimer = GetCurrentDecayDelay();
         meter += amount;
-        if (meter >= 1)
+        if (multiplier < maxMultiplier)
         {
-            float overflow = meter - 1f;
-            meter = overflow;
-            if (multiplier < maxMultiplier)
+            if (meter >= 1)
             {
+                float overflow = meter - 1f;
+                meter = overflow;
                 multiplier++;
                 OnMultiplierChanged?.Invoke(multiplier);
             }
+        }
+        else
+        {
+            if (meter >= 1f)
+                meter = 1f;
         }
 
         OnMeterChanged?.Invoke(meter);
