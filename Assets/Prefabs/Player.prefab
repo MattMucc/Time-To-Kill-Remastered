@@ -129,6 +129,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5798472407733403075}
   - component: {fileID: 6423080786412276918}
+  - component: {fileID: 710000000000000901}
+  - component: {fileID: 710000000000000902}
   - component: {fileID: 158548772344956580}
   - component: {fileID: 4064952002247959734}
   - component: {fileID: 221179911429285909}
@@ -546,3 +548,42 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &710000000000000901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3156657812529754764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37968c920dec4230b2c07d2440585724, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  aim: {fileID: 4838711845357135864}
+  grappleLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxDistance: 35
+  minimumLength: 2
+  reelSpeed: 8
+  slackSpeed: 10
+  swingAcceleration: 18
+  swingAssistSpeed: 20
+  maxWrapPoints: 8
+  cornerClearance: 0.12
+  ropeWidth: 0.035
+  ropeMaterial: {fileID: 2100000, guid: bda6d6fd92bab074e954c9a93bb62d99, type: 2}
+--- !u!114 &710000000000000902
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3156657812529754764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f69c70fbb274ce798232c0d12edeb16, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  size: 18

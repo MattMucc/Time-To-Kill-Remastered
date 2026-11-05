@@ -22,6 +22,7 @@ public class MovementController : MonoBehaviour
     private Quaternion airHeading;
     private bool wasGrounded;
     private bool momentumJump;
+    private GrappleController grapple;
 
     public enum SlideControlMode { Hold, Toggle }
 
@@ -107,6 +108,7 @@ public class MovementController : MonoBehaviour
 
     private void Awake()
     {
+        grapple = GetComponent<GrappleController>();
         if (!input) input = GetComponent<InputReader>();
         if (!rb) rb = GetComponent<Rigidbody>();
         if (!capsule) capsule = GetComponent<CapsuleCollider>();
@@ -154,10 +156,25 @@ public class MovementController : MonoBehaviour
         slideStartRequest.Reset();
         EndSlide();
         wallRunState.Stop();
+        if (grapple) grapple.Release();
     }
 
     private void FixedUpdate()
     {
+        bool wasGrappling = grapple && grapple.IsAttached;
+        if (grapple) grapple.StepInput();
+        bool grappling = grapple && grapple.IsAttached;
+        bool jumpPressed = input.ConsumeJumpPressed();
+        if (grappling && jumpPressed)
+        {
+            grapple.Release();
+            grappling = false;
+            wasGrappling = true;
+        }
+        if (grappling && !wasGrappling)
+        {
+            airHeading = Heading();
+        }
         GroundCheck();
         if (isGrounded)
         {
@@ -168,12 +185,15 @@ public class MovementController : MonoBehaviour
         Quaternion heading = Heading();
         bool jumpingFromWallRun = IsWallRunning;
         if (wasGrounded && !isGrounded) BeginAirborne(previousHeading);
+        if (grappling || wasGrappling) momentumJump = true;
         bool jump = jumpGrace.Step(Time.fixedTimeAsDouble, isGrounded,
-            input.ConsumeJumpPressed(), input.GameplayActive, IsWallRunning ? 0f : coyoteTime, jumpBufferTime);
+            jumpPressed, input.GameplayActive, IsWallRunning ? 0f : coyoteTime, jumpBufferTime);
         bool wallJump = !jump && !isGrounded && input.GameplayActive && HasWall
             && wallJumpGate.CanJump(Time.fixedTimeAsDouble, WallNormal)
             && jumpGrace.TryConsumeBuffered(Time.fixedTimeAsDouble);
         jump |= wallJump;
+        // An airborne grapple jump releases without manufacturing a second jump.
+        if (wasGrappling && jumpPressed && !jump) jumpGrace.Reset();
         bool slidePressed = input.ConsumeSlidePressed();
         bool slideStep = false;
         bool jumpingFromSlide = jump && IsSliding;
@@ -198,7 +218,7 @@ public class MovementController : MonoBehaviour
         }
         bool wasWallRunning = IsWallRunning;
         bool sameRunWall = wasWallRunning && wallRunState.IsSameWall(WallNormal);
-        bool canWallRun = input.GameplayActive && !isGrounded && !jump
+        bool canWallRun = (!grappling || !grapple.IsTaut) && input.GameplayActive && !isGrounded && !jump
             && !IsSliding && !isLowered && !input.IsSlideHeld && !slideStartRequest.Pending
             && HasWall && Vector3.Dot(rb.linearVelocity, WallNormal) <= 0.5f
             && (sameRunWall || CanWallRun(rb.linearVelocity, WallNormal, input.Move.y, wallRunMinSpeed));
@@ -208,14 +228,16 @@ public class MovementController : MonoBehaviour
             Vector3 velocity = CalculateWallRunVelocity(rb.linearVelocity, WallNormal);
             if (!sameRunWall)
             {
-                velocity = CalculateWallRunEntryVelocity(velocity,
-                    Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight), wallRunEntryRiseScale);
+                if (!grappling)
+                    velocity = CalculateWallRunEntryVelocity(velocity,
+                        Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight), wallRunEntryRiseScale);
                 wallRunTravel = new Vector3(velocity.x, 0f, velocity.z);
             }
             velocity = wallRunState.ApplyPause(Time.fixedTimeAsDouble, input.Move.y > 0.1f,
                 velocity, wallRunPauseHangTime);
-            velocity.y = wallRunState.ApplyApexGlide(Time.fixedTimeAsDouble, velocity.y,
-                Mathf.Abs(gravity) * wallRunGravityScale * Time.fixedDeltaTime, wallRunApexGlideTime);
+            if (!grappling)
+                velocity.y = wallRunState.ApplyApexGlide(Time.fixedTimeAsDouble, velocity.y,
+                    Mathf.Abs(gravity) * wallRunGravityScale * Time.fixedDeltaTime, wallRunApexGlideTime);
             if (!wallRunState.Paused)
             {
                 Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
@@ -244,7 +266,8 @@ public class MovementController : MonoBehaviour
                 if (braking > 0f && (rb.linearVelocity - groundVelocity).magnitude <= slideEndSpeed) EndSlide();
             }
         }
-        else if (!IsWallRunning && input.GameplayActive && !jumpingFromSlide && !wallJump)
+        else if (!IsWallRunning && ((!wasGrappling && !grappling) || (grappling && isGrounded))
+            && input.GameplayActive && !jumpingFromSlide && !wallJump)
         {
             Move(heading);
             if (isLowered && isGrounded)
@@ -291,6 +314,8 @@ public class MovementController : MonoBehaviour
         if (IsWallRunning) gravityForce *= (wallRunState.IsHanging(Time.fixedTimeAsDouble)
             || wallRunState.IsGliding(Time.fixedTimeAsDouble)) ? 0f : wallRunGravityScale;
         rb.AddForce(gravityForce, ForceMode.Acceleration);
+        if (grappling) grapple.SyncBodyAnchor();
+        if (grappling && !isGrounded && !IsWallRunning) grapple.ApplySwingControl();
     }
 
     public static bool CanWallRun(Vector3 velocity, Vector3 normal, float forwardInput, float minSpeed)

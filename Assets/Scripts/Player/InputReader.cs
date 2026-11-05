@@ -13,6 +13,11 @@ public class InputReader : MonoBehaviour
     private bool hasFocus = true;
     private bool jumpQueued;
     private bool slideQueued;
+    private bool grappleQueued;
+    private InputAction slackAction;
+    public bool IsGrappleHeld => GameplayActive && grappleAction != null && grappleAction.IsPressed();
+    public float GrappleReelInput => !GameplayActive ? 0f :
+        (reelAction.IsPressed() ? 1f : 0f) - (slackAction.IsPressed() ? 1f : 0f);
     public bool IsSlideHeld => GameplayActive && slideAction != null && slideAction.IsPressed();
 
     public bool GameplayActive => isActiveAndEnabled && gameplayEnabled && hasFocus &&
@@ -91,6 +96,7 @@ public class InputReader : MonoBehaviour
         utilityAction = inputMap.FindAction("Utility", true);
         grappleAction = inputMap.FindAction("Grapple", true);
         reelAction = inputMap.FindAction("Reel", true);
+        slackAction = inputMap.FindAction("Slack", true);
         interactAction = inputMap.FindAction("Interact", true);
         primarySlotAction = inputMap.FindAction("PrimarySlot", true);
         secondarySlotAction = inputMap.FindAction("SecondarySlot", true);
@@ -99,6 +105,7 @@ public class InputReader : MonoBehaviour
         cycleWeaponAction = inputMap.FindAction("CycleWeapon", true);
         jumpAction.performed += QueueJump;
         slideAction.performed += QueueSlide;
+        grappleAction.performed += QueueGrapple;
     }
 
     private void OnEnable()
@@ -202,6 +209,7 @@ public class InputReader : MonoBehaviour
 
     private void ClearInputs()
     {
+        grappleQueued = false;
         Move = Look = ScrollWeapon = Vector2.zero;
         slideQueued = false;
         jumpQueued = false;
@@ -232,9 +240,22 @@ public class InputReader : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (grappleAction != null) grappleAction.performed -= QueueGrapple;
         if (jumpAction != null) jumpAction.performed -= QueueJump;
         if (slideAction != null) slideAction.performed -= QueueSlide;
         if (runtimeInput) Destroy(runtimeInput);
+    }
+
+    private void QueueGrapple(InputAction.CallbackContext context)
+    {
+        if (GameplayActive) grappleQueued = true;
+    }
+
+    public bool ConsumeGrapplePressed()
+    {
+        bool pressed = GameplayActive && grappleQueued;
+        grappleQueued = false;
+        return pressed;
     }
 
     private void OnActionChange(object obj, InputActionChange change)
