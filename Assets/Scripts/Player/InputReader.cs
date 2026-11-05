@@ -23,6 +23,7 @@ public class InputReader : MonoBehaviour
     public bool GameplayActive => isActiveAndEnabled && gameplayEnabled && hasFocus &&
         inputMap != null && inputMap.enabled && Time.timeScale > 0f;
     public bool LookUsesGamepad => lookAction?.activeControl?.device is Gamepad;
+    public bool ReloadUsesGamepad => reloadAction?.activeControl?.device is Gamepad;
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;

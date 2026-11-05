@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9865dabb1a8d423bb1e26b84a1de7aca, type: 3}
+  m_Name: Pistol
+  m_EditorClassIdentifier:
+  weaponId: pistol
+  displayName: Pistol
+  hudIcon: {fileID: 0}
+  maxMagazine: 12
+  maxReserve: 96
+  discardMagazineOnReload: 1
+  reloadSeconds: 1.2
+  shotInterval: 0.18
+  damage: 25
+  range: 100
+  automatic: 0
+  bulletVisualSpeed: 900
+  aimFieldOfView: 45
+  aimedWeaponPosition: {x: 0, y: -0.16, z: 0.5}
+  aimTransitionSpeed: 14

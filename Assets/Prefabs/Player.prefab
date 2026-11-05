@@ -131,6 +131,8 @@ GameObject:
   - component: {fileID: 6423080786412276918}
   - component: {fileID: 710000000000000901}
   - component: {fileID: 710000000000000902}
+  - component: {fileID: 710000000000000903}
+  - component: {fileID: 710000000000000904}
   - component: {fileID: 158548772344956580}
   - component: {fileID: 4064952002247959734}
   - component: {fileID: 221179911429285909}
@@ -312,7 +314,7 @@ Transform:
   m_GameObject: {fileID: 3971617348336726996}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.5}
+  m_LocalPosition: {x: 0, y: 0, z: 0.52}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -587,3 +589,35 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   size: 18
+--- !u!114 &710000000000000903
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3156657812529754764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb08e5d50d444f05893c9d0326b180a9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  view: {fileID: 4838711845357135864}
+  muzzle: {fileID: 5226779882270046665}
+  weaponModel: {fileID: 1987706562001455252}
+  shotEffectMaterial: {fileID: 2100000, guid: 022c5db3c4b94a5ca4ef586ca949e9c8, type: 2}
+  pickupDistance: 3
+  ammoPickupDistance: 1.4
+  swapHoldSeconds: 0.65
+--- !u!114 &710000000000000904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3156657812529754764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d28af3b153414ef7b90e8b53808694a3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  font: {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
