@@ -81,6 +81,22 @@ public class MovementController : MonoBehaviour
     private readonly RaycastHit[] wallHits = new RaycastHit[8];
     private readonly WallJumpGate wallJumpGate = new WallJumpGate();
 
+    [Header("Wall Run Settings")]
+    [SerializeField, Min(0.1f)] private float wallRunMinSpeed = 6f;
+    [SerializeField, Min(0f)] private float wallRunDuration = 2.5f;
+    [SerializeField, Range(0f, 1f)] private float wallRunGravityScale = 0.25f;
+    [Tooltip("Entry rise relative to a normal jump, applied once when the wall run starts.")]
+    [SerializeField, Range(0f, 1f)] private float wallRunEntryRiseScale = 0.65f;
+    [SerializeField, Min(0f)] private float wallRunApexGlideTime = 0.4f;
+    [SerializeField, Min(0f)] private float wallRunPauseHangTime = 0.2f;
+    [SerializeField, Min(0f)] private float wallRunResumeAcceleration = 60f;
+    [SerializeField, Min(0f)] private float wallRunAimJumpSpeed = 14f;
+    [SerializeField, Min(0f)] private float wallRunAimJumpHeight = 2.5f;
+    [SerializeField] private Transform wallRunAim;
+    private Vector3 wallRunTravel;
+    public bool IsWallRunning => wallRunState.Active;
+    private readonly WallRunState wallRunState = new WallRunState();
+
     [Header("Gravity Settings")]
     [SerializeField] private float gravity = -20f;
 
@@ -94,6 +110,11 @@ public class MovementController : MonoBehaviour
         if (!input) input = GetComponent<InputReader>();
         if (!rb) rb = GetComponent<Rigidbody>();
         if (!capsule) capsule = GetComponent<CapsuleCollider>();
+        if (!wallRunAim)
+        {
+            Camera view = GetComponentInChildren<Camera>();
+            if (view) wallRunAim = view.transform;
+        }
         if (!input || !rb || !capsule || capsule.direction != 1)
         {
             Debug.LogError("Movement requires input, a Rigidbody and a vertical capsule.", this);
@@ -132,17 +153,23 @@ public class MovementController : MonoBehaviour
         jumpGrace.Reset();
         slideStartRequest.Reset();
         EndSlide();
+        wallRunState.Stop();
     }
 
     private void FixedUpdate()
     {
         GroundCheck();
-        if (isGrounded) wallJumpGate.Reset();
+        if (isGrounded)
+        {
+            wallJumpGate.Reset();
+            wallRunState.Reset();
+        }
         WallCheck();
         Quaternion heading = Heading();
+        bool jumpingFromWallRun = IsWallRunning;
         if (wasGrounded && !isGrounded) BeginAirborne(previousHeading);
         bool jump = jumpGrace.Step(Time.fixedTimeAsDouble, isGrounded,
-            input.ConsumeJumpPressed(), input.GameplayActive, coyoteTime, jumpBufferTime);
+            input.ConsumeJumpPressed(), input.GameplayActive, IsWallRunning ? 0f : coyoteTime, jumpBufferTime);
         bool wallJump = !jump && !isGrounded && input.GameplayActive && HasWall
             && wallJumpGate.CanJump(Time.fixedTimeAsDouble, WallNormal)
             && jumpGrace.TryConsumeBuffered(Time.fixedTimeAsDouble);
@@ -169,6 +196,38 @@ public class MovementController : MonoBehaviour
             // Landing on a slideable ramp need not be walkable (e.g. 45 degrees).
             isGrounded = true;
         }
+        bool wasWallRunning = IsWallRunning;
+        bool sameRunWall = wasWallRunning && wallRunState.IsSameWall(WallNormal);
+        bool canWallRun = input.GameplayActive && !isGrounded && !jump
+            && !IsSliding && !isLowered && !input.IsSlideHeld && !slideStartRequest.Pending
+            && HasWall && Vector3.Dot(rb.linearVelocity, WallNormal) <= 0.5f
+            && (sameRunWall || CanWallRun(rb.linearVelocity, WallNormal, input.Move.y, wallRunMinSpeed));
+        wallRunState.Step(Time.fixedTimeAsDouble, canWallRun, WallNormal, wallRunDuration);
+        if (IsWallRunning)
+        {
+            Vector3 velocity = CalculateWallRunVelocity(rb.linearVelocity, WallNormal);
+            if (!sameRunWall)
+            {
+                velocity = CalculateWallRunEntryVelocity(velocity,
+                    Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight), wallRunEntryRiseScale);
+                wallRunTravel = new Vector3(velocity.x, 0f, velocity.z);
+            }
+            velocity = wallRunState.ApplyPause(Time.fixedTimeAsDouble, input.Move.y > 0.1f,
+                velocity, wallRunPauseHangTime);
+            velocity.y = wallRunState.ApplyApexGlide(Time.fixedTimeAsDouble, velocity.y,
+                Mathf.Abs(gravity) * wallRunGravityScale * Time.fixedDeltaTime, wallRunApexGlideTime);
+            if (!wallRunState.Paused)
+            {
+                Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
+                horizontal = Vector3.MoveTowards(horizontal, wallRunTravel,
+                    wallRunResumeAcceleration * Time.fixedDeltaTime);
+                velocity.x = horizontal.x;
+                velocity.z = horizontal.z;
+            }
+            rb.linearVelocity = velocity;
+            // Leaving the wall must retain travel even below the normal threshold.
+            momentumJump = true;
+        }
         if (IsSliding)
         {
             // Airborne slides remain active and lowered, but have no ground drag,
@@ -185,7 +244,7 @@ public class MovementController : MonoBehaviour
                 if (braking > 0f && (rb.linearVelocity - groundVelocity).magnitude <= slideEndSpeed) EndSlide();
             }
         }
-        else if (input.GameplayActive && !jumpingFromSlide && !wallJump)
+        else if (!IsWallRunning && input.GameplayActive && !jumpingFromSlide && !wallJump)
         {
             Move(heading);
             if (isLowered && isGrounded)
@@ -203,9 +262,13 @@ public class MovementController : MonoBehaviour
         {
             if (wallJump)
             {
-                rb.linearVelocity = CalculateWallJumpVelocity(rb.linearVelocity, WallNormal,
-                    wallJumpAwaySpeed, Mathf.Sqrt(2f * Mathf.Abs(gravity) * wallJumpHeight));
+                rb.linearVelocity = jumpingFromWallRun
+                    ? CalculateAimedWallJump(rb.linearVelocity, wallRunAim ? wallRunAim.forward : transform.forward,
+                        WallNormal, wallRunAimJumpSpeed, Mathf.Sqrt(2f * Mathf.Abs(gravity) * wallRunAimJumpHeight))
+                    : CalculateWallJumpVelocity(rb.linearVelocity, WallNormal,
+                        wallJumpAwaySpeed, Mathf.Sqrt(2f * Mathf.Abs(gravity) * wallJumpHeight));
                 wallJumpGate.Record(Time.fixedTimeAsDouble, WallNormal, wallJumpCooldown);
+                wallRunState.BlockWall(WallNormal);
                 BeginAirborne(heading);
                 // Preserve the launch impulse even below the ordinary speed threshold.
                 momentumJump = true;
@@ -225,7 +288,125 @@ public class MovementController : MonoBehaviour
         // Slide integration already includes gravity along the ramp. Apply only
         // its normal component here, so downhill gravity is never counted twice.
         if (slideStep) gravityForce = groundNormal * Vector3.Dot(gravityForce, groundNormal);
+        if (IsWallRunning) gravityForce *= (wallRunState.IsHanging(Time.fixedTimeAsDouble)
+            || wallRunState.IsGliding(Time.fixedTimeAsDouble)) ? 0f : wallRunGravityScale;
         rb.AddForce(gravityForce, ForceMode.Acceleration);
+    }
+
+    public static bool CanWallRun(Vector3 velocity, Vector3 normal, float forwardInput, float minSpeed)
+    {
+        if (forwardInput <= 0.1f || normal.sqrMagnitude < 0.5f) return false;
+        Vector3 outward = new Vector3(normal.x, 0f, normal.z).normalized;
+        Vector3 horizontal = new Vector3(velocity.x, 0f, velocity.z);
+        float away = Vector3.Dot(horizontal, outward);
+        Vector3 along = horizontal - outward * away;
+        // No head-on attachment or catching a wall while launching away from it.
+        return away <= 0.5f && along.magnitude >= minSpeed;
+    }
+
+    public static Vector3 CalculateWallRunEntryVelocity(Vector3 velocity, float jumpSpeed, float riseScale)
+    {
+        // Start the arc on wall contact, not at the earlier ground takeoff.
+        // Preserve stronger upward launches while giving late arrivals the same baseline rise.
+        if (riseScale > 0f) velocity.y = Mathf.Max(jumpSpeed, velocity.y) * riseScale;
+        return velocity;
+    }
+
+    public static Vector3 CalculateAimedWallJump(Vector3 velocity, Vector3 aim, Vector3 normal,
+        float minimumSpeed, float upwardSpeed = 0f)
+    {
+        Vector3 direction = aim.normalized;
+        // Keep the launch outside solid geometry even when aiming into the wall.
+        direction += normal * Mathf.Max(0f, 0.15f - Vector3.Dot(direction, normal));
+        Vector3 launch = direction.normalized * Mathf.Max(minimumSpeed, velocity.magnitude);
+        // Aim controls travel, with a minimum upward kick so level aim still jumps.
+        if (upwardSpeed > 0f) launch.y = Mathf.Max(launch.y, upwardSpeed);
+        return launch;
+    }
+
+    public static Vector3 CalculateWallRunVelocity(Vector3 velocity, Vector3 normal)
+    {
+        Vector3 outward = new Vector3(normal.x, 0f, normal.z).normalized;
+        // Keep tangent and vertical momentum; do not add speed, lift or attraction.
+        return velocity - outward * Vector3.Dot(velocity, outward);
+    }
+
+    public sealed class WallRunState
+    {
+        public bool Active { get; private set; }
+        private bool usedWall;
+        private Vector3 lastNormal;
+        private double endsAt;
+        public bool Paused { get; private set; }
+        private bool hangUsed;
+        private double hangUntil;
+        private bool apexInitialized;
+        private bool apexArmed;
+        private double glideUntil;
+
+        public bool IsGliding(double now) => Active && !Paused && now < glideUntil;
+        public float ApplyApexGlide(double now, float verticalSpeed, float gravityStep, float glideTime)
+        {
+            if (!apexInitialized)
+            {
+                apexInitialized = true;
+                apexArmed = verticalSpeed >= 0f;
+            }
+            // Pausing consumes the rise; resuming must not restore its original apex.
+            if (Paused) { apexArmed = false; glideUntil = 0d; return verticalSpeed; }
+            if (apexArmed && verticalSpeed <= gravityStep)
+            {
+                apexArmed = false;
+                glideUntil = now + glideTime;
+            }
+            return IsGliding(now) ? 0f : verticalSpeed;
+        }
+
+        public bool IsSameWall(Vector3 normal) => usedWall && Vector3.Dot(lastNormal, normal) >= 0.5f;
+        public bool IsHanging(double now) => Active && Paused && now < hangUntil;
+        public Vector3 ApplyPause(double now, bool forwardHeld, Vector3 velocity, float hangTime)
+        {
+            if (!forwardHeld)
+            {
+                if (!Paused)
+                {
+                    hangUntil = !hangUsed && velocity.y >= 0f ? now + hangTime : now;
+                    hangUsed = true;
+                }
+                velocity.x = velocity.z = 0f;
+                velocity.y = Mathf.Min(0f, velocity.y);
+            }
+            else hangUntil = now;
+            Paused = !forwardHeld;
+            return velocity;
+        }
+
+        public void Reset() { Stop(); usedWall = false; lastNormal = Vector3.zero; }
+        public void Stop() { Active = false; Paused = false; hangUntil = glideUntil = 0d; }
+        public void BlockWall(Vector3 normal)
+        {
+            Stop();
+            usedWall = true;
+            lastNormal = normal;
+        }
+        public bool Step(double now, bool eligible, Vector3 normal, float duration)
+        {
+            bool sameWall = usedWall && Vector3.Dot(lastNormal, normal) >= 0.5f;
+            if (Active && (!eligible || !sameWall || now >= endsAt)) Stop();
+            if (!Active && eligible && !sameWall && duration > 0f)
+            {
+                Active = true;
+                hangUsed = false;
+                apexInitialized = apexArmed = false;
+                glideUntil = 0d;
+                Paused = false;
+                hangUntil = 0d;
+                usedWall = true;
+                lastNormal = normal;
+                endsAt = now + duration;
+            }
+            return Active;
+        }
     }
 
     private void GroundCheck()

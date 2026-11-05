@@ -207,6 +207,16 @@ MonoBehaviour:
   wallJumpAwaySpeed: 8
   wallJumpHeight: 2.5
   wallJumpCooldown: 0.15
+  wallRunMinSpeed: 6
+  wallRunDuration: 2.5
+  wallRunGravityScale: 0.25
+  wallRunEntryRiseScale: 0.65
+  wallRunApexGlideTime: 0.4
+  wallRunPauseHangTime: 0.2
+  wallRunResumeAcceleration: 60
+  wallRunAimJumpSpeed: 14
+  wallRunAimJumpHeight: 2.5
+  wallRunAim: {fileID: 4838711845357135864}
   gravity: -30
   input: {fileID: 158548772344956580}
   rb: {fileID: 4064952002247959734}
