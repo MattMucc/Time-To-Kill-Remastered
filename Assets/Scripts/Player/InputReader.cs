@@ -2,11 +2,20 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(-100)]
 public class InputReader : MonoBehaviour
 {
     [SerializeField] private InputActionAsset input;
     [SerializeField] private string gameplayMapName = "Gameplay";
     private InputActionMap inputMap;
+    private InputActionAsset runtimeInput;
+    private bool gameplayEnabled = true;
+    private bool hasFocus = true;
+    private bool jumpQueued;
+
+    public bool GameplayActive => isActiveAndEnabled && gameplayEnabled && hasFocus &&
+        inputMap != null && inputMap.enabled && Time.timeScale > 0f;
+    public bool LookUsesGamepad => lookAction?.activeControl?.device is Gamepad;
     private InputAction moveAction;
     private InputAction lookAction;
     private InputAction jumpAction;
@@ -29,6 +38,7 @@ public class InputReader : MonoBehaviour
     public enum ControlScheme { Keyboard, Gamepad }
     public ControlScheme CurrentScheme { get; private set; } = ControlScheme.Keyboard;
     public event Action<ControlScheme> OnControlSchemeChanged;
+    public event Action OnInputsCleared;
 
     // Input Actions
     public Vector2 Move { get; private set; }
@@ -61,12 +71,13 @@ public class InputReader : MonoBehaviour
     {
         if (!input)
         {
-            Debug.LogError($"{nameof(PlayerInput)}: No InputActionAsset assigned!", this);
+            Debug.LogError($"{nameof(InputReader)}: No InputActionAsset assigned!", this);
             enabled = false;
             return;
         }
 
-        inputMap = input.FindActionMap(gameplayMapName, true);
+        runtimeInput = Instantiate(input);
+        inputMap = runtimeInput.FindActionMap(gameplayMapName, true);
         moveAction = inputMap.FindAction("Move", true);
         lookAction = inputMap.FindAction("Look", true);
         jumpAction = inputMap.FindAction("Jump", true);
@@ -84,11 +95,12 @@ public class InputReader : MonoBehaviour
         utilitySlotAction = inputMap.FindAction("UtilitySlot", true);
         scrollWeaponAction = inputMap.FindAction("ScrollWeapon", true);
         cycleWeaponAction = inputMap.FindAction("CycleWeapon", true);
+        jumpAction.performed += QueueJump;
     }
 
     private void OnEnable()
     {
-        inputMap?.Enable();
+        if (gameplayEnabled && hasFocus) inputMap?.Enable();
         InputSystem.onActionChange += OnActionChange;
     }
 
@@ -96,11 +108,18 @@ public class InputReader : MonoBehaviour
     {
         inputMap?.Disable();
         InputSystem.onActionChange -= OnActionChange;
+        ClearInputs();
     }
 
     private void Update()
     {
-        Move = moveAction.ReadValue<Vector2>();
+        if (!GameplayActive)
+        {
+            ClearInputs();
+            return;
+        }
+
+        Move = Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
         Look = lookAction.ReadValue<Vector2>();
         ScrollWeapon = scrollWeaponAction.ReadValue<Vector2>();
 
@@ -131,6 +150,74 @@ public class InputReader : MonoBehaviour
 
         // Simultaneous Inputs
         ReelHeld = grappleAction.IsPressed() && reelAction.IsPressed();
+    }
+
+    // Suspends player commands, not world physics or existing momentum.
+    public void SetGameplayEnabled(bool value)
+    {
+        gameplayEnabled = value;
+        RefreshGameplayState();
+    }
+
+    private void OnApplicationFocus(bool focused)
+    {
+        hasFocus = focused;
+        RefreshGameplayState();
+    }
+
+    private void RefreshGameplayState()
+    {
+        ClearInputs();
+        if (isActiveAndEnabled && gameplayEnabled && hasFocus) inputMap?.Enable();
+        else inputMap?.Disable();
+    }
+
+    private void QueueJump(InputAction.CallbackContext context)
+    {
+        if (GameplayActive) jumpQueued = true;
+    }
+
+    // Retain a short press until physics runs, then consume it exactly once.
+    public bool ConsumeJumpPressed()
+    {
+        bool pressed = GameplayActive && jumpQueued;
+        jumpQueued = false;
+        return pressed;
+    }
+
+    private void ClearInputs()
+    {
+        Move = Look = ScrollWeapon = Vector2.zero;
+        jumpQueued = false;
+        JumpPressed = false;
+        SlidePressed = false;
+        SlideHeld = false;
+        MeleePressed = false;
+        AimPressed = false;
+        AimHeld = false;
+        AttackPressed = false;
+        AttackHeld = false;
+        ReloadPressed = false;
+        ReloadHeld = false;
+        UtilityPressed = false;
+        UtilityHeld = false;
+        GrapplePressed = false;
+        GrappleHeld = false;
+        ReelPressed = false;
+        ReelHeld = false;
+        InteractPressed = false;
+        InteractHeld = false;
+        PrimarySlotPressed = false;
+        SecondarySlotPressed = false;
+        UtilitySlotPressed = false;
+        CycleWeaponPressed = false;
+        OnInputsCleared?.Invoke();
+    }
+
+    private void OnDestroy()
+    {
+        if (jumpAction != null) jumpAction.performed -= QueueJump;
+        if (runtimeInput) Destroy(runtimeInput);
     }
 
     private void OnActionChange(object obj, InputActionChange change)

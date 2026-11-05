@@ -169,8 +169,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 10
-  crouchSpeed: 5
+  momentumThreshold: 12
+  lowSpeedGroundAcceleration: 60
+  lowSpeedGroundDeceleration: 80
+  lowSpeedAirAcceleration: 30
+  lowSpeedAirDeceleration: 25
+  groundSteering: 20
+  airSteering: 3
+  coastDeceleration: 3
+  brakeDeceleration: 12
   jumpHeight: 2
+  coyoteTime: 0.12
+  jumpBufferTime: 0.15
   groundLayer:
     serializedVersion: 2
     m_Bits: 9
@@ -226,7 +236,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3156657812529754764}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 01e140ca2edde654286f7ae90e59a54a, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -319,7 +329,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22f66d70974aec44f9c9e46bf533cb9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mouseSensitivity: 100
+  mouseSensitivity: 0.15
+  controllerSensitivity: 180
   minPitch: -85
   maxPitch: 85
   input: {fileID: 158548772344956580}
