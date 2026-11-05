@@ -199,6 +199,14 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 9
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallCheckDistance: 0.2
+  wallNormalVerticalTolerance: 0.2
+  wallJumpAwaySpeed: 8
+  wallJumpHeight: 2.5
+  wallJumpCooldown: 0.15
   gravity: -30
   input: {fileID: 158548772344956580}
   rb: {fileID: 4064952002247959734}

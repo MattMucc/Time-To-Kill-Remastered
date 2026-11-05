@@ -69,6 +69,18 @@ public class MovementController : MonoBehaviour
     private bool isGrounded;
     private readonly RaycastHit[] groundHits = new RaycastHit[16];
 
+    [Header("Wall Jump Settings")]
+    [SerializeField] private LayerMask wallLayers = ~0;
+    [SerializeField, Min(0f)] private float wallCheckDistance = 0.2f;
+    [SerializeField, Range(0f, 0.5f)] private float wallNormalVerticalTolerance = 0.2f;
+    [SerializeField, Min(0f)] private float wallJumpAwaySpeed = 8f;
+    [SerializeField, Min(0f)] private float wallJumpHeight = 2.5f;
+    [SerializeField, Min(0f)] private float wallJumpCooldown = 0.15f;
+    public bool HasWall { get; private set; }
+    public Vector3 WallNormal { get; private set; }
+    private readonly RaycastHit[] wallHits = new RaycastHit[8];
+    private readonly WallJumpGate wallJumpGate = new WallJumpGate();
+
     [Header("Gravity Settings")]
     [SerializeField] private float gravity = -20f;
 
@@ -125,10 +137,16 @@ public class MovementController : MonoBehaviour
     private void FixedUpdate()
     {
         GroundCheck();
+        if (isGrounded) wallJumpGate.Reset();
+        WallCheck();
         Quaternion heading = Heading();
         if (wasGrounded && !isGrounded) BeginAirborne(previousHeading);
         bool jump = jumpGrace.Step(Time.fixedTimeAsDouble, isGrounded,
             input.ConsumeJumpPressed(), input.GameplayActive, coyoteTime, jumpBufferTime);
+        bool wallJump = !jump && !isGrounded && input.GameplayActive && HasWall
+            && wallJumpGate.CanJump(Time.fixedTimeAsDouble, WallNormal)
+            && jumpGrace.TryConsumeBuffered(Time.fixedTimeAsDouble);
+        jump |= wallJump;
         bool slidePressed = input.ConsumeSlidePressed();
         bool slideStep = false;
         bool jumpingFromSlide = jump && IsSliding;
@@ -167,7 +185,7 @@ public class MovementController : MonoBehaviour
                 if (braking > 0f && (rb.linearVelocity - groundVelocity).magnitude <= slideEndSpeed) EndSlide();
             }
         }
-        else if (input.GameplayActive && !jumpingFromSlide)
+        else if (input.GameplayActive && !jumpingFromSlide && !wallJump)
         {
             Move(heading);
             if (isLowered && isGrounded)
@@ -183,10 +201,22 @@ public class MovementController : MonoBehaviour
         previousHeading = heading;
         if (jump)
         {
-            Vector3 velocity = rb.linearVelocity;
-            velocity.y = Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight);
-            rb.linearVelocity = velocity;
-            if (isGrounded) BeginAirborne(heading);
+            if (wallJump)
+            {
+                rb.linearVelocity = CalculateWallJumpVelocity(rb.linearVelocity, WallNormal,
+                    wallJumpAwaySpeed, Mathf.Sqrt(2f * Mathf.Abs(gravity) * wallJumpHeight));
+                wallJumpGate.Record(Time.fixedTimeAsDouble, WallNormal, wallJumpCooldown);
+                BeginAirborne(heading);
+                // Preserve the launch impulse even below the ordinary speed threshold.
+                momentumJump = true;
+            }
+            else
+            {
+                Vector3 velocity = rb.linearVelocity;
+                velocity.y = Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight);
+                rb.linearVelocity = velocity;
+                if (isGrounded) BeginAirborne(heading);
+            }
             isGrounded = false;
             slideStep = false;
         }
@@ -243,6 +273,91 @@ public class MovementController : MonoBehaviour
                 hasSlideSupport = hit.normal.y >= minimumNormalY;
                 isGrounded = IsSliding ? hasSlideSupport : walkable;
             }
+        }
+    }
+
+    private void WallCheck()
+    {
+        HasWall = false;
+        WallNormal = Vector3.zero;
+        Vector3 scale = capsule.transform.lossyScale;
+        float radius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+        float halfHeight = Mathf.Max(radius, capsule.height * Mathf.Abs(scale.y) * 0.5f);
+        Vector3 center = capsule.transform.TransformPoint(capsule.center);
+        Vector3 offset = Vector3.up * (halfHeight - radius);
+        float skin = Mathf.Min(0.05f, radius * 0.1f);
+        float nearest = float.PositiveInfinity;
+        // Probe all sides independently of the camera, including diagonals.
+        for (int directionIndex = 0; directionIndex < 8; directionIndex++)
+        {
+            float angle = directionIndex * Mathf.PI * 0.25f;
+            Vector3 direction = new Vector3((float)System.Math.Cos(angle), 0f, (float)System.Math.Sin(angle));
+            RaycastHit[] hits = wallHits;
+            int count = Physics.CapsuleCastNonAlloc(center - offset, center + offset,
+                radius - skin, direction, hits, wallCheckDistance + skin, wallLayers,
+                QueryTriggerInteraction.Ignore);
+            if (count == hits.Length)
+            {
+                hits = Physics.CapsuleCastAll(center - offset, center + offset,
+                    radius - skin, direction, wallCheckDistance + skin, wallLayers,
+                    QueryTriggerInteraction.Ignore);
+                count = hits.Length;
+            }
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = hits[i];
+                if (hit.collider.attachedRigidbody == rb || hit.collider.transform.IsChildOf(transform)) continue;
+                if (!IsWallSurface(hit.normal, wallNormalVerticalTolerance)) continue;
+                if (hit.distance >= nearest) continue;
+                nearest = hit.distance;
+                HasWall = true;
+                WallNormal = new Vector3(hit.normal.x, 0f, hit.normal.z).normalized;
+            }
+        }
+    }
+
+    public static bool IsWallSurface(Vector3 normal, float verticalTolerance)
+    {
+        return normal.sqrMagnitude > 0.5f && Mathf.Abs(normal.normalized.y) <= verticalTolerance;
+    }
+
+    public static Vector3 CalculateWallJumpVelocity(Vector3 velocity, Vector3 normal,
+        float awaySpeed, float upwardSpeed)
+    {
+        Vector3 outward = new Vector3(normal.x, 0f, normal.z).normalized;
+        // Remove incoming wall-normal speed, retain tangential/outgoing momentum,
+        // and supply a minimum push away rather than stacking unlimited impulses.
+        float currentAway = Vector3.Dot(velocity, outward);
+        velocity += outward * Mathf.Max(0f, awaySpeed - currentAway);
+        velocity.y = Mathf.Max(velocity.y, upwardSpeed);
+        return velocity;
+    }
+
+    public sealed class WallJumpGate
+    {
+        private bool usedWall;
+        private Vector3 lastNormal;
+        private double availableAt;
+
+        public void Reset()
+        {
+            usedWall = false;
+            availableAt = 0d;
+            lastNormal = Vector3.zero;
+        }
+
+        public bool CanJump(double now, Vector3 normal)
+        {
+            // Compare surface directions, not collider IDs: adjacent pieces of
+            // the same wall must not bypass the repeat limit.
+            return now >= availableAt && (!usedWall || Vector3.Dot(lastNormal, normal.normalized) < 0.5f);
+        }
+
+        public void Record(double now, Vector3 normal, float cooldown)
+        {
+            usedWall = true;
+            lastNormal = normal.normalized;
+            availableAt = now + cooldown;
         }
     }
 
@@ -493,6 +608,13 @@ public class MovementController : MonoBehaviour
         {
             lastGrounded = bufferedUntil = double.NegativeInfinity;
             pending = false;
+        }
+
+        public bool TryConsumeBuffered(double now)
+        {
+            if (!pending || now > bufferedUntil) return false;
+            Reset();
+            return true;
         }
 
         public bool Step(double now, bool grounded, bool pressed, bool active,
