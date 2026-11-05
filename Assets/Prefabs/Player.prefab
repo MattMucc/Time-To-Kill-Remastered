@@ -176,11 +176,26 @@ MonoBehaviour:
   lowSpeedAirDeceleration: 25
   groundSteering: 20
   airSteering: 3
-  coastDeceleration: 3
+  coastDeceleration: 12
   brakeDeceleration: 12
+  slideControlMode: 0
+  slideStartSpeed: 4
+  slideBoost: 3
+  slideBoostDuration: 0.35
+  slideDeceleration: 12
+  slideRampDeceleration: 2
+  slideSlopeGravity: 1
+  slideEndSpeed: 2
+  slideCooldown: 0.5
+  slideHeight: 1.2
+  crouchedMoveSpeed: 5
+  slideView: {fileID: 4838711845357135864}
+  slideModel: {fileID: 9002877778959995221}
   jumpHeight: 2
   coyoteTime: 0.12
   jumpBufferTime: 0.15
+  maxWalkAngle: 40
+  maxGroundAngle: 60
   groundLayer:
     serializedVersion: 2
     m_Bits: 9

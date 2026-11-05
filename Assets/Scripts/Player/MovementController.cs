@@ -16,12 +16,45 @@ public class MovementController : MonoBehaviour
     [SerializeField, Min(0f)] private float lowSpeedAirDeceleration = 25f;
     [SerializeField, Min(0f)] private float groundSteering = 20f;
     [SerializeField, Min(0f)] private float airSteering = 3f;
-    [SerializeField, Min(0f)] private float coastDeceleration = 3f;
+    [SerializeField, Min(0f)] private float coastDeceleration = 12f;
     [SerializeField, Min(0f)] private float brakeDeceleration = 12f;
     private Quaternion previousHeading;
     private Quaternion airHeading;
     private bool wasGrounded;
     private bool momentumJump;
+
+    public enum SlideControlMode { Hold, Toggle }
+
+    [Header("Slide Settings")]
+    [SerializeField] private SlideControlMode slideControlMode = SlideControlMode.Hold;
+    [SerializeField, Min(0f)] private float slideStartSpeed = 4f;
+    [SerializeField, Min(0f)] private float slideBoost = 3f;
+    [Tooltip("Seconds before slide braking begins; slope gravity remains active.")]
+    [SerializeField, Min(0f)] private float slideBoostDuration = 0.35f;
+    [SerializeField, Min(0f)] private float slideDeceleration = 12f;
+    [SerializeField, Min(0f)] private float slideRampDeceleration = 2f;
+    [SerializeField, Min(0f)] private float slideSlopeGravity = 1f;
+    [SerializeField, Min(0f)] private float slideEndSpeed = 2f;
+    [SerializeField, Min(0f)] private float slideCooldown = 0.5f;
+    [SerializeField, Min(0.1f)] private float slideHeight = 1.2f;
+    [SerializeField, Min(0f)] private float crouchedMoveSpeed = 5f;
+    [SerializeField] private Transform slideView;
+    [SerializeField] private Transform slideModel;
+    public bool IsSliding { get; private set; }
+    private bool isLowered;
+    private double nextSlideTime;
+    private double slideStartedAt;
+    private bool onSteepSurface;
+    private bool hasSlideSupport;
+    private readonly SlideStartRequest slideStartRequest = new SlideStartRequest();
+    private float standingHeight;
+    private Vector3 standingCenter;
+    private Vector3 standingViewPosition;
+    private Vector3 standingModelPosition;
+    private Vector3 standingModelScale;
+    private Vector3 groundNormal = Vector3.up;
+    private Vector3 groundVelocity;
+    private readonly Collider[] clearanceHits = new Collider[16];
 
     [Header("Jump Settings")]
     [SerializeField, Min(0f)] private float jumpHeight = 2f;
@@ -30,7 +63,9 @@ public class MovementController : MonoBehaviour
     private readonly JumpGrace jumpGrace = new JumpGrace();
     [SerializeField] private LayerMask groundLayer = ~0;
     [SerializeField, Min(0f)] private float groundCheckDistance = 0.1f;
+    [Tooltip("Maximum slope accepted for sliding support.")]
     [SerializeField, Range(0f, 89f)] private float maxGroundAngle = 60f;
+    [SerializeField, Range(0f, 89f)] private float maxWalkAngle = 40f;
     private bool isGrounded;
     private readonly RaycastHit[] groundHits = new RaycastHit[16];
 
@@ -56,11 +91,20 @@ public class MovementController : MonoBehaviour
         // This controller owns gravity; do not apply Unity gravity a second time.
         rb.useGravity = false;
         previousHeading = airHeading = Heading();
+        standingHeight = capsule.height;
+        standingCenter = capsule.center;
+        if (slideView) standingViewPosition = slideView.localPosition;
+        if (slideModel)
+        {
+            standingModelPosition = slideModel.localPosition;
+            standingModelScale = slideModel.localScale;
+        }
     }
 
     private void OnEnable()
     {
         jumpGrace.Reset();
+        slideStartRequest.Reset();
         if (input) input.OnInputsCleared += ClearJumpGrace;
     }
 
@@ -74,6 +118,8 @@ public class MovementController : MonoBehaviour
     private void ClearJumpGrace()
     {
         jumpGrace.Reset();
+        slideStartRequest.Reset();
+        EndSlide();
     }
 
     private void FixedUpdate()
@@ -83,26 +129,83 @@ public class MovementController : MonoBehaviour
         if (wasGrounded && !isGrounded) BeginAirborne(previousHeading);
         bool jump = jumpGrace.Step(Time.fixedTimeAsDouble, isGrounded,
             input.ConsumeJumpPressed(), input.GameplayActive, coyoteTime, jumpBufferTime);
-        if (input.GameplayActive) Move(heading);
+        bool slidePressed = input.ConsumeSlidePressed();
+        bool slideStep = false;
+        bool jumpingFromSlide = jump && IsSliding;
+        bool wasSliding = IsSliding;
+
+        if (IsSliding && ShouldEndSlide(input.GameplayActive, jump,
+            slideControlMode == SlideControlMode.Toggle, input.IsSlideHeld, slidePressed)) EndSlide();
+        if (isLowered && !IsSliding) TryStand();
+        // A late ledge press is retained while held (or toggled), then consumed
+        // once on landing. It never grants a boost or bypasses cooldown in midair.
+        Vector3 relative = rb.linearVelocity - groundVelocity;
+        float speed = new Vector2(relative.x, relative.z).magnitude;
+        bool startSlide = slideStartRequest.Step(slidePressed, input.IsSlideHeld,
+            slideControlMode == SlideControlMode.Toggle, input.GameplayActive, jump,
+            wasSliding, !isLowered && Time.fixedTimeAsDouble >= nextSlideTime,
+            hasSlideSupport, speed >= slideStartSpeed);
+        if (startSlide)
+        {
+            StartSlide(relative);
+            // Landing on a slideable ramp need not be walkable (e.g. 45 degrees).
+            isGrounded = true;
+        }
+        if (IsSliding)
+        {
+            // Airborne slides remain active and lowered, but have no ground drag,
+            // ramp projection or attraction. Full gravity is applied below.
+            if (isGrounded)
+            {
+                float braking = SlideBrakingFraction((float)(Time.fixedTimeAsDouble - slideStartedAt),
+                    slideBoostDuration, Time.fixedDeltaTime);
+                rb.linearVelocity = groundVelocity + CalculateSlideVelocity(
+                    rb.linearVelocity - groundVelocity, groundNormal, Mathf.Abs(gravity),
+                    slideSlopeGravity, slideDeceleration * braking, Time.fixedDeltaTime,
+                    slideRampDeceleration * braking);
+                slideStep = true;
+                if (braking > 0f && (rb.linearVelocity - groundVelocity).magnitude <= slideEndSpeed) EndSlide();
+            }
+        }
+        else if (input.GameplayActive && !jumpingFromSlide)
+        {
+            Move(heading);
+            if (isLowered && isGrounded)
+            {
+                // Allow the player to escape a low ceiling after the slide ends.
+                Vector3 velocity = rb.linearVelocity;
+                Vector3 horizontal = Vector3.ClampMagnitude(new Vector3(velocity.x, 0f, velocity.z), crouchedMoveSpeed);
+                rb.linearVelocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
+            }
+        }
+        if (!IsSliding && onSteepSurface && !jump)
+            rb.linearVelocity = PreventUphillWalking(rb.linearVelocity - groundVelocity, groundNormal) + groundVelocity;
         previousHeading = heading;
         if (jump)
         {
             Vector3 velocity = rb.linearVelocity;
             velocity.y = Mathf.Sqrt(2f * Mathf.Abs(gravity) * jumpHeight);
             rb.linearVelocity = velocity;
-            // A coyote jump keeps the heading captured when leaving the ledge.
             if (isGrounded) BeginAirborne(heading);
             isGrounded = false;
+            slideStep = false;
         }
         wasGrounded = isGrounded;
-        // Contacts support the body on the floor. Gravity still applies during
-        // ascent and while player commands are suspended.
-        rb.AddForce(Vector3.down * Mathf.Abs(gravity), ForceMode.Acceleration);
+        Vector3 gravityForce = Vector3.down * Mathf.Abs(gravity);
+        // Slide integration already includes gravity along the ramp. Apply only
+        // its normal component here, so downhill gravity is never counted twice.
+        if (slideStep) gravityForce = groundNormal * Vector3.Dot(gravityForce, groundNormal);
+        rb.AddForce(gravityForce, ForceMode.Acceleration);
     }
 
     private void GroundCheck()
     {
         isGrounded = false;
+        onSteepSurface = false;
+        hasSlideSupport = false;
+        groundNormal = Vector3.up;
+        groundVelocity = Vector3.zero;
+        float closestGround = float.PositiveInfinity;
         Vector3 scale = capsule.transform.lossyScale;
         float radius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
         float halfHeight = Mathf.Max(radius, capsule.height * Mathf.Abs(scale.y) * 0.5f);
@@ -130,12 +233,122 @@ public class MovementController : MonoBehaviour
             Vector3 surfaceVelocity = hit.rigidbody ? hit.rigidbody.GetPointVelocity(hit.point) : Vector3.zero;
             // A jump separates from the surface; uphill travel along it does not.
             bool separating = Vector3.Dot(rb.linearVelocity - surfaceVelocity, hit.normal) > 0.1f;
-            if (!separating && hit.normal.y >= minimumNormalY)
+            if (!separating && hit.normal.y > 0.01f && hit.distance < closestGround)
             {
-                isGrounded = true;
-                break;
+                closestGround = hit.distance;
+                groundNormal = hit.normal;
+                groundVelocity = surfaceVelocity;
+                bool walkable = IsWalkableSurface(hit.normal, maxWalkAngle);
+                onSteepSurface = !walkable;
+                hasSlideSupport = hit.normal.y >= minimumNormalY;
+                isGrounded = IsSliding ? hasSlideSupport : walkable;
             }
         }
+    }
+
+    private void StartSlide(Vector3 relativeVelocity)
+    {
+        IsSliding = true;
+        slideStartedAt = Time.fixedTimeAsDouble;
+        nextSlideTime = Time.fixedTimeAsDouble + slideCooldown;
+        rb.linearVelocity = groundVelocity + CalculateSlideEntryVelocity(relativeVelocity, groundNormal, slideBoost);
+        SetLowered(true);
+    }
+
+    private void EndSlide()
+    {
+        if (IsSliding) nextSlideTime = Time.fixedTimeAsDouble + slideCooldown;
+        IsSliding = false;
+        if (isLowered) TryStand();
+    }
+
+    private void SetLowered(bool lowered)
+    {
+        float height = lowered ? Mathf.Clamp(slideHeight, capsule.radius * 2f, standingHeight) : standingHeight;
+        float drop = standingHeight - height;
+        capsule.height = height;
+        // Keep the feet at exactly the same location as the standing capsule.
+        capsule.center = standingCenter - Vector3.up * (drop * 0.5f);
+        if (slideView) slideView.localPosition = standingViewPosition - Vector3.up * drop;
+        if (slideModel)
+        {
+            slideModel.localPosition = standingModelPosition - Vector3.up * (drop * 0.5f);
+            slideModel.localScale = new Vector3(standingModelScale.x,
+                standingModelScale.y * height / standingHeight, standingModelScale.z);
+        }
+        isLowered = lowered;
+    }
+
+    private void TryStand()
+    {
+        Vector3 scale = capsule.transform.lossyScale;
+        float radius = capsule.radius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z));
+        float halfHeight = Mathf.Max(radius, standingHeight * Mathf.Abs(scale.y) * 0.5f);
+        Vector3 center = capsule.transform.TransformPoint(standingCenter);
+        Vector3 offset = Vector3.up * (halfHeight - radius);
+        // A tiny skin prevents floor contact from counting as an obstruction.
+        float checkRadius = Mathf.Max(0.01f, radius - 0.02f);
+        Collider[] hits = clearanceHits;
+        int count = Physics.OverlapCapsuleNonAlloc(center - offset, center + offset,
+            checkRadius, hits, ~0, QueryTriggerInteraction.Ignore);
+        if (count == hits.Length)
+        {
+            hits = Physics.OverlapCapsule(center - offset, center + offset,
+                checkRadius, ~0, QueryTriggerInteraction.Ignore);
+            count = hits.Length;
+        }
+        for (int i = 0; i < count; i++)
+        {
+            if (hits[i].attachedRigidbody == rb || hits[i].transform.IsChildOf(transform)) continue;
+            return;
+        }
+        SetLowered(false);
+    }
+
+    public static Vector3 CalculateSlideEntryVelocity(Vector3 velocity, Vector3 surfaceNormal, float boost)
+    {
+        Vector3 tangent = Vector3.ProjectOnPlane(velocity, surfaceNormal.normalized);
+        return tangent + tangent.normalized * boost;
+    }
+
+    public static Vector3 CalculateSlideVelocity(Vector3 velocity, Vector3 surfaceNormal,
+        float gravityMagnitude, float slopeMultiplier, float deceleration, float dt,
+        float rampDeceleration = 2f)
+    {
+        Vector3 normal = surfaceNormal.normalized;
+        Vector3 tangent = Vector3.ProjectOnPlane(velocity, normal);
+        Vector3 downhillAcceleration = Vector3.ProjectOnPlane(Vector3.down * gravityMagnitude, normal);
+        tangent += downhillAcceleration * slopeMultiplier * dt;
+        // Keep strong braking on flat ground without cancelling the acceleration
+        // on gentle test ramps. Blend to ramp friction by roughly 10 degrees.
+        float slopeBlend = Mathf.Clamp01(new Vector2(normal.x, normal.z).magnitude / 0.17364818f);
+        float friction = Mathf.Lerp(deceleration, rampDeceleration, slopeBlend);
+        return Vector3.MoveTowards(tangent, Vector3.zero, friction * dt);
+    }
+
+    public static bool ShouldEndSlide(bool controlsActive, bool jump, bool toggle, bool held, bool pressed)
+    {
+        return !controlsActive || jump || (toggle ? pressed : !held);
+    }
+
+    public static float SlideBrakingFraction(float elapsed, float duration, float dt)
+    {
+        if (dt <= 0f) return 0f;
+        return Mathf.Clamp01((elapsed + dt - Mathf.Max(0f, duration)) / dt);
+    }
+
+    public static bool IsWalkableSurface(Vector3 normal, float maxAngle)
+    {
+        return normal.normalized.y >= (float)System.Math.Cos(maxAngle * Mathf.Deg2Rad);
+    }
+
+    public static Vector3 PreventUphillWalking(Vector3 velocity, Vector3 normal)
+    {
+        // Only used against a nearby, non-separating steep surface. A jump moving
+        // away from it is not constrained. Preserve vertical flight and sideways motion.
+        Vector3 uphill = new Vector3(-normal.x, 0f, -normal.z).normalized;
+        float uphillSpeed = Vector3.Dot(velocity, uphill);
+        return uphillSpeed > 0f ? velocity - uphill * uphillSpeed : velocity;
     }
 
     private Quaternion Heading()
@@ -231,6 +444,41 @@ public class MovementController : MonoBehaviour
         float cos = (float)System.Math.Cos(radians);
         return new Vector3(velocity.x * cos + velocity.z * sin, 0f,
             velocity.z * cos - velocity.x * sin);
+    }
+
+    public sealed class SlideStartRequest
+    {
+        public bool Pending { get; private set; }
+
+        public void Reset()
+        {
+            Pending = false;
+        }
+
+        public bool Step(bool pressed, bool held, bool toggle, bool controlsActive,
+            bool jump, bool alreadySliding, bool canStart, bool grounded, bool enoughSpeed)
+        {
+            if (!controlsActive || jump || alreadySliding || (!toggle && !held))
+            {
+                Reset();
+                return false;
+            }
+            if (pressed)
+            {
+                if (toggle && Pending)
+                {
+                    Reset();
+                    return false;
+                }
+                // A press rejected during cooldown must not become a later boost.
+                Pending = canStart;
+            }
+            if (!Pending || !grounded) return false;
+            // Consume on the first landing even if speed is too low, so an old
+            // request cannot unexpectedly activate after starting to walk again.
+            Reset();
+            return canStart && enoughSpeed;
+        }
     }
 
     // Scaled simulation time makes both windows independent of render rate and

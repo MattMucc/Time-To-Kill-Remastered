@@ -12,6 +12,8 @@ public class InputReader : MonoBehaviour
     private bool gameplayEnabled = true;
     private bool hasFocus = true;
     private bool jumpQueued;
+    private bool slideQueued;
+    public bool IsSlideHeld => GameplayActive && slideAction != null && slideAction.IsPressed();
 
     public bool GameplayActive => isActiveAndEnabled && gameplayEnabled && hasFocus &&
         inputMap != null && inputMap.enabled && Time.timeScale > 0f;
@@ -96,6 +98,7 @@ public class InputReader : MonoBehaviour
         scrollWeaponAction = inputMap.FindAction("ScrollWeapon", true);
         cycleWeaponAction = inputMap.FindAction("CycleWeapon", true);
         jumpAction.performed += QueueJump;
+        slideAction.performed += QueueSlide;
     }
 
     private void OnEnable()
@@ -185,9 +188,22 @@ public class InputReader : MonoBehaviour
         return pressed;
     }
 
+    private void QueueSlide(InputAction.CallbackContext context)
+    {
+        if (GameplayActive) slideQueued = true;
+    }
+
+    public bool ConsumeSlidePressed()
+    {
+        bool pressed = GameplayActive && slideQueued;
+        slideQueued = false;
+        return pressed;
+    }
+
     private void ClearInputs()
     {
         Move = Look = ScrollWeapon = Vector2.zero;
+        slideQueued = false;
         jumpQueued = false;
         JumpPressed = false;
         SlidePressed = false;
@@ -217,6 +233,7 @@ public class InputReader : MonoBehaviour
     private void OnDestroy()
     {
         if (jumpAction != null) jumpAction.performed -= QueueJump;
+        if (slideAction != null) slideAction.performed -= QueueSlide;
         if (runtimeInput) Destroy(runtimeInput);
     }
 
