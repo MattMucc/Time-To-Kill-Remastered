@@ -318,6 +318,16 @@ public class MovementController : MonoBehaviour
         if (grappling && !isGrounded && !IsWallRunning) grapple.ApplySwingControl();
     }
 
+    public void ResetAfterRespawn()
+    {
+        ClearJumpGrace();
+        SetLowered(false);
+        wallJumpGate.Reset(); wallRunState.Reset();
+        wasGrounded = isGrounded = momentumJump = false;
+        nextSlideTime = 0d;
+        previousHeading = airHeading = Heading();
+    }
+
     public static bool CanWallRun(Vector3 velocity, Vector3 normal, float forwardInput, float minSpeed)
     {
         if (forwardInput <= 0.1f || normal.sqrMagnitude < 0.5f) return false;

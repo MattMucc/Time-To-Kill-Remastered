@@ -16,6 +16,7 @@ public sealed class WeaponInstance
         Magazine = Math.Clamp(magazine, 0, MaxMagazine); Reserve = Math.Clamp(reserve, 0, MaxReserve);
     }
     public bool CanReload => Magazine < MaxMagazine && Reserve > 0;
+    public void Restock() { Magazine = MaxMagazine; Reserve = MaxReserve; }
     public bool Fire() { if (Magazine == 0) return false; Magazine--; return true; }
     public int Reload()
     {
@@ -45,6 +46,7 @@ public sealed class WeaponInventory
     public int EquippedIndex { get; private set; }
     public WeaponInstance Equipped => slots.Count == 0 ? null : slots[EquippedIndex];
     public WeaponInstance Find(string id) => slots.Find(w => w.Id == id);
+    public void Restock() { foreach (WeaponInstance weapon in slots) weapon.Restock(); }
     public bool Pickup(WeaponInstance weapon, bool allowSwap, out WeaponInstance dropped)
     {
         dropped = null;

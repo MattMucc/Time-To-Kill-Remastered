@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 710000000000000902}
   - component: {fileID: 710000000000000903}
   - component: {fileID: 710000000000000904}
+  - component: {fileID: 710000000000000905}
   - component: {fileID: 158548772344956580}
   - component: {fileID: 4064952002247959734}
   - component: {fileID: 221179911429285909}
@@ -574,6 +575,10 @@ MonoBehaviour:
   swingAssistSpeed: 20
   maxWrapPoints: 8
   cornerClearance: 0.12
+  enemyTargetRadius: 85
+  enemyPullAcceleration: 45
+  enemyPullSpeed: 24
+  enemyReelSpeed: 18
   ropeWidth: 0.035
   ropeMaterial: {fileID: 2100000, guid: bda6d6fd92bab074e954c9a93bb62d99, type: 2}
 --- !u!114 &710000000000000902
@@ -621,3 +626,19 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   font: {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+--- !u!114 &710000000000000905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3156657812529754764}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91f4615699e64cae95825b0d25fc0eb4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  font: {fileID: 12800000, guid: e3265ab4bf004d28a9537516768c1c75, type: 3}
+  maxHealth: 100
+  respawnDelay: 1.5
+  spawnProtection: 1

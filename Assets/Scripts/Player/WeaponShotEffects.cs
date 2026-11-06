@@ -121,12 +121,23 @@ public sealed class WeaponShotEffects
     public void Clear()
     {
         flashEnds = 0d;
-        flash.gameObject.SetActive(false);
-        foreach (Flight flight in flights) { flight.active=false; flight.visual.gameObject.SetActive(false); }
+        // Scene teardown may destroy the independent effects root before the
+        // player's OnDisable runs. Unity's destroyed-object check is required.
+        if (flash) flash.gameObject.SetActive(false);
+        foreach (Flight flight in flights)
+        {
+            if (flight == null) continue;
+            flight.active=false;
+            if (flight.visual) flight.visual.gameObject.SetActive(false);
+        }
     }
     public void Dispose()
     {
-        Object.Destroy(root); Object.Destroy(bulletMesh); Object.Destroy(flashMesh); Object.Destroy(burstMesh);
+        Clear();
+        if (root) Object.Destroy(root);
+        if (bulletMesh) Object.Destroy(bulletMesh);
+        if (flashMesh) Object.Destroy(flashMesh);
+        if (burstMesh) Object.Destroy(burstMesh);
     }
     public static float VisualFlightDuration(float distance, float speed)
         => Mathf.Clamp(distance / Mathf.Max(1f,speed),.025f,.04f);

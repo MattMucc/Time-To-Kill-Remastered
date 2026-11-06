@@ -9,6 +9,11 @@ public class Damageable : MonoBehaviour
     private Renderer[] visuals;
     private Collider[] colliders;
     private double resetAt;
+    public void ResetHealth()
+    {
+        Health = maxHealth;
+        SetVisible(true);
+    }
     private void Awake()
     {
         Health = maxHealth;

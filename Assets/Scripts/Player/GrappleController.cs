@@ -16,6 +16,22 @@ public class GrappleController : MonoBehaviour
     [SerializeField, Min(0f)] private float swingAssistSpeed = 20f;
     [SerializeField, Range(1, 16)] private int maxWrapPoints = 8;
     [SerializeField, Min(0.02f)] private float cornerClearance = 0.12f;
+    [Header("Enemy Grapple")]
+    [Tooltip("Screen-space targeting radius, in pixels at 1080p; scales with viewport height.")]
+    [SerializeField, Min(0f)] private float enemyTargetRadius = 85f;
+    [SerializeField, Min(0f)] private float enemyPullAcceleration = 45f;
+    [SerializeField, Min(0f)] private float enemyPullSpeed = 24f;
+    [SerializeField, Min(0f)] private float enemyReelSpeed = 18f;
+    private Camera targetCamera;
+    private RangedEnemy attachedEnemy;
+    public struct TargetInfo
+    {
+        public Collider collider;
+        public Vector3 point;
+        public RangedEnemy enemy;
+        public Rect screenRect;
+        public bool hasScreenRect;
+    }
     public bool IsAttached => joint != null;
     public float RopeLength { get; private set; }
     private Rigidbody body;
@@ -58,6 +74,7 @@ public class GrappleController : MonoBehaviour
     {
         body = GetComponent<Rigidbody>();
         input = GetComponent<InputReader>();
+        targetCamera = GetComponentInChildren<Camera>();
         if (!aim)
         {
             Camera view = GetComponentInChildren<Camera>();
@@ -96,7 +113,7 @@ public class GrappleController : MonoBehaviour
         if (!input.IsGrappleHeld) { Release(); return; }
         if (pressed && !IsAttached) TryAttach();
         if (!IsAttached) return;
-        if (!target || !target.enabled || !target.gameObject.activeInHierarchy)
+        if (!target || !target.enabled || !target.gameObject.activeInHierarchy || (attachedEnemy && !attachedEnemy.Alive))
         { Release(); return; }
         Vector3 anchor = target.transform.TransformPoint(localAnchor);
         if (!UpdateCorners(anchor)) { Release(); return; }
@@ -108,9 +125,13 @@ public class GrappleController : MonoBehaviour
         if (joint.connectedBody != anchorBody) joint.connectedBody = anchorBody;
         joint.connectedAnchor = anchorBody ? anchorBody.transform.InverseTransformPoint(currentAnchor) : currentAnchor;
         // Do not wind up a severely stretched constraint against a blocking obstacle.
-        float reelInput = AllowedReelInput(input.GrappleReelInput, offset.magnitude + fixedLength, RopeLength);
-        RopeLength = AdjustLength(RopeLength, reelInput, reelSpeed, slackSpeed,
+        float requestedReel = attachedEnemy ? 1f : input.GrappleReelInput;
+        float reelInput = AllowedReelInput(requestedReel, offset.magnitude + fixedLength, RopeLength);
+        RopeLength = AdjustLength(RopeLength, reelInput, attachedEnemy ? enemyReelSpeed : reelSpeed, slackSpeed,
             Mathf.Max(minimumLength, fixedLength + 0.5f), maxDistance, Time.fixedDeltaTime);
+        if (attachedEnemy && offset.magnitude > minimumLength + .2f)
+            body.AddForce(EnemyPull(body.linearVelocity-AnchorVelocity(),offset,
+                enemyPullAcceleration,enemyPullSpeed,Time.fixedDeltaTime),ForceMode.Acceleration);
         freeLength = RopeLength - fixedLength;
         SoftJointLimit limit = joint.linearLimit;
         limit.limit = freeLength;
@@ -119,20 +140,10 @@ public class GrappleController : MonoBehaviour
 
     private void TryAttach()
     {
-        if (!aim) return;
-        RaycastHit? nearest = null;
-        foreach (RaycastHit hit in Physics.RaycastAll(aim.position, aim.forward, maxDistance,
-            grappleLayers, QueryTriggerInteraction.Ignore))
-        {
-            if (IsSelf(hit.collider)) continue;
-            if (!nearest.HasValue || hit.distance < nearest.Value.distance) nearest = hit;
-        }
-        if (!nearest.HasValue) return;
-        RaycastHit selected = nearest.Value;
+        if (!TryGetTarget(out TargetInfo selected)) return;
         float distance = Vector3.Distance(body.worldCenterOfMass, selected.point);
-        if (distance < minimumLength || distance > maxDistance
-            || Blocked(body.worldCenterOfMass, selected.point - body.worldCenterOfMass, selected.collider)) return;
         target = selected.collider;
+        attachedEnemy = selected.enemy;
         localAnchor = target.transform.InverseTransformPoint(selected.point);
         RopeLength = distance;
         currentAnchor = selected.point;
@@ -141,15 +152,100 @@ public class GrappleController : MonoBehaviour
         joint = gameObject.AddComponent<ConfigurableJoint>();
         joint.autoConfigureConnectedAnchor = false;
         joint.anchor = transform.InverseTransformPoint(body.worldCenterOfMass);
-        joint.connectedBody = selected.rigidbody;
-        joint.connectedAnchor = selected.rigidbody
-            ? selected.rigidbody.transform.InverseTransformPoint(selected.point) : selected.point;
+        joint.connectedBody = selected.collider.attachedRigidbody;
+        joint.connectedAnchor = joint.connectedBody
+            ? joint.connectedBody.transform.InverseTransformPoint(selected.point) : selected.point;
         joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Limited;
         joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = ConfigurableJointMotion.Free;
         joint.linearLimit = new SoftJointLimit { limit = RopeLength, contactDistance = 0.01f };
         joint.projectionMode = JointProjectionMode.None;
         joint.enableCollision = true;
-        // The solver enforces a maximum distance, not a fixed distance: slack stays free.
+    }
+
+    public bool TryGetPreview(out TargetInfo info)
+    {
+        if (!isActiveAndEnabled || !input || !input.GameplayActive) {info=default;return false;}
+        if (!IsAttached) return TryGetTarget(out info);
+        info=default;
+        if (!target || !target.enabled || !target.gameObject.activeInHierarchy || (attachedEnemy && !attachedEnemy.Alive)) return false;
+        info.collider=target;info.point=target.transform.TransformPoint(localAnchor);info.enemy=attachedEnemy;
+        if(attachedEnemy) info.hasScreenRect=TryScreenRect(target.bounds,out info.screenRect)
+            && ScreenDistance(info.screenRect,targetCamera.pixelRect.center)<=enemyTargetRadius*targetCamera.pixelRect.height/1080f
+            && Vector3.Distance(body.worldCenterOfMass,info.point)<=maxDistance;
+        return true;
+    }
+
+    private bool TryGetTarget(out TargetInfo info)
+    {
+        info=default;
+        if (!aim || !body || !targetCamera) return false;
+        float best=float.PositiveInfinity;
+        float radius=enemyTargetRadius*targetCamera.pixelRect.height/1080f;
+        foreach(RangedEnemy enemy in RangedEnemy.Targets)
+        {
+            if(!enemy || !enemy.Alive) continue;
+            Collider collider=enemy.GetComponent<Collider>();
+            if(!collider || !collider.enabled || collider.isTrigger || (grappleLayers.value & (1<<collider.gameObject.layer))==0) continue;
+            if(!TryScreenRect(collider.bounds,out Rect rect)) continue;
+            float distance=ScreenDistance(rect,targetCamera.pixelRect.center);
+            if(distance>radius || distance>=best) continue;
+            Vector3 direction=collider.bounds.center-aim.position;
+            if(!collider.Raycast(new Ray(aim.position,direction.normalized),out RaycastHit surface,maxDistance)) continue;
+            if(!ValidPoint(collider,surface.point)) continue;
+            best=distance;info=new TargetInfo{collider=collider,point=surface.point,enemy=enemy,screenRect=rect,hasScreenRect=true};
+        }
+        if(info.enemy) return true;
+        RaycastHit? nearest = null;
+        foreach (RaycastHit hit in Physics.RaycastAll(aim.position, aim.forward, maxDistance,
+            grappleLayers, QueryTriggerInteraction.Ignore))
+        {
+            if (IsSelf(hit.collider)) continue;
+            if (!nearest.HasValue || hit.distance < nearest.Value.distance) nearest = hit;
+        }
+        if (!nearest.HasValue || !ValidPoint(nearest.Value.collider,nearest.Value.point)) return false;
+        info.collider=nearest.Value.collider;info.point=nearest.Value.point;
+        // A directly visible edge may be hittable even when the enemy's center is behind cover.
+        RangedEnemy directEnemy=info.collider.GetComponentInParent<RangedEnemy>();
+        if(directEnemy && directEnemy.Alive)
+        {
+            info.enemy=directEnemy;
+            info.hasScreenRect=TryScreenRect(info.collider.bounds,out info.screenRect);
+        }
+        return true;
+    }
+
+    private bool ValidPoint(Collider collider,Vector3 point)
+    {
+        float distance=Vector3.Distance(body.worldCenterOfMass,point);
+        return distance>=minimumLength && distance<=maxDistance && Vector3.Distance(aim.position,point)<=maxDistance
+            && !Blocked(aim.position,point-aim.position,collider)
+            && !Blocked(body.worldCenterOfMass,point-body.worldCenterOfMass,collider);
+    }
+
+    private bool TryScreenRect(Bounds bounds,out Rect rect)
+    {
+        Vector2 min=new Vector2(float.PositiveInfinity,float.PositiveInfinity),max=new Vector2(float.NegativeInfinity,float.NegativeInfinity);
+        rect=default;
+        if(!targetCamera) return false;
+        for(int i=0;i<8;i++)
+        {
+            Vector3 corner=bounds.center+Vector3.Scale(bounds.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+            Vector3 screen=targetCamera.WorldToScreenPoint(corner);
+            if(screen.z<=targetCamera.nearClipPlane) return false;
+            min=Vector2.Min(min,screen);max=Vector2.Max(max,screen);
+        }
+        rect=Rect.MinMaxRect(min.x,min.y,max.x,max.y);
+        return targetCamera.pixelRect.Overlaps(rect);
+    }
+
+    public static float ScreenDistance(Rect rect,Vector2 point)
+        => Vector2.Distance(point,new Vector2(Mathf.Clamp(point.x,rect.xMin,rect.xMax),Mathf.Clamp(point.y,rect.yMin,rect.yMax)));
+
+    public static Vector3 EnemyPull(Vector3 velocity,Vector3 offset,float acceleration,float speed,float dt)
+    {
+        if(dt<=0f || offset.sqrMagnitude<.0001f) return Vector3.zero;
+        Vector3 direction=offset.normalized;
+        return direction*Mathf.Min(acceleration,Mathf.Max(0f,speed-Vector3.Dot(velocity,direction))/dt);
     }
 
     private bool IsSelf(Collider collider) => collider.attachedRigidbody == body || collider.transform.IsChildOf(transform);
@@ -305,6 +401,7 @@ public class GrappleController : MonoBehaviour
             joint = null;
         }
         target = null;
+        attachedEnemy = null;
         corners.Clear();
         if (line) line.enabled = false;
         // Never overwrite velocity on release.
